@@ -45,8 +45,6 @@ If you liked this you might like other [creative coding projects](https://tailor
 
 ## To-DO
 
-- remove unused packages
-- github
 - Export time data
 - publish
 - Extract from .mov?
