@@ -1,17 +1,24 @@
 {
-  "name": "y",
+  "name": "gpmf-extract",
   "version": "0.1.0",
-  "description": "Extracts binary GoPro Metadata Format data from video files",
+  "description": "Extracts binary GoPro Metadata Format from video files",
   "main": "index.js",
   "scripts": {
     "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JuanIrache/gpmf-extract.git"
   },
   "keywords": [
     "GoPro",
     "GPMF",
     "mp4",
     "mov",
-    "exctract"
+    "exctract",
+    "telemetry",
+    "metadata",
+    "sensors"
   ],
   "author": "Juan Irache Duesca",
   "license": "ISC",
