@@ -1,15 +1,13 @@
 var MP4Box = require('mp4box');
-//In the browser, we need to read the file by chunks
-var chunkSize = 1024 * 1024; // bytes
+var readBlock = require('./readBlock');
 var mp4boxFile;
 var trackId;
 var nb_samples;
+var gotSamples;
 
 module.exports = function(file, isBrowser = false, update) {
   return new Promise(function(resolve, reject) {
-    var fileSize = file.size;
     var offset = 0;
-    var offsetFlag = 0;
     mp4boxFile = MP4Box.createFile(false);
     var uintArr;
     mp4boxFile.onError = function(e) {
@@ -33,6 +31,7 @@ module.exports = function(file, isBrowser = false, update) {
 
         //When samples arrive
         mp4boxFile.onSamples = function(id, user, samples) {
+          gotSamples = true;
           var totalSamples = samples.reduce(function(acc, cur) {
             return acc + cur.size;
           }, 0);
@@ -56,48 +55,8 @@ module.exports = function(file, isBrowser = false, update) {
       }
     };
 
-    //Read chunks progressively in browser
-    var readBlock = function(_offset, length, _file) {
-      var r = new FileReader();
-      var blob = _file.slice(_offset, length + _offset);
-      var onBlockRead = function(evt) {
-        if (evt.target.error == null) {
-          //Add data to mp4box
-          var onparsedbuffer = function(mp4box, buffer) {
-            buffer.fileStart = offset;
-            mp4box.appendBuffer(buffer);
-          };
-          onparsedbuffer(mp4boxFile, evt.target.result);
-          //Record offset for next chunk
-          offset += evt.target.result.byteLength;
-          if (update) {
-            //Provide proress percentage
-            const prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
-            update(prog);
-          }
-        } else {
-          reject('Read error: ' + evt.target.error, '');
-        }
-
-        //Adapt offset to larger file sizes
-        if (offset >= fileSize) {
-          mp4boxFile.flush();
-          if (!uintArr) {
-            offset = 0;
-            offsetFlag++;
-            readBlock(offset, chunkSize, file);
-          }
-          return;
-        }
-        readBlock(offset, chunkSize, file);
-      };
-      r.onload = onBlockRead;
-      //Use the FileReader
-      r.readAsArrayBuffer(blob);
-    };
-
-    //Only use chunk system in browser
-    if (isBrowser) readBlock(offset, chunkSize, file);
+    //Use chunk system in browser
+    if (isBrowser) readBlock(offset, file, mp4boxFile, gotSamples, update);
     else {
       //Nodejs
       var arrayBuffer = new Uint8Array(file).buffer;
