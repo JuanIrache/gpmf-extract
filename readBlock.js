@@ -1,8 +1,9 @@
 //Read chunks progressively in browser
 var chunkSize = 1024 * 1024; // bytes
 var offsetFlag = 0;
+var offset = 0;
 
-function readBlock(offset, file, mp4boxFile, gotSamples, update) {
+function readBlock(file, mp4boxFile, gotSamples, update) {
   var fileSize = file.size;
   var r = new FileReader();
   var blob = file.slice(offset, chunkSize + offset);
@@ -31,11 +32,11 @@ function readBlock(offset, file, mp4boxFile, gotSamples, update) {
       if (!gotSamples) {
         offset = 0;
         offsetFlag++;
-        readBlock(offset, file, mp4boxFile, gotSamples, update);
+        readBlock(file, mp4boxFile, gotSamples, update);
       }
       return;
     }
-    readBlock(offset, file, mp4boxFile, gotSamples, update);
+    readBlock(file, mp4boxFile, gotSamples, update);
   };
   r.onload = onBlockRead;
   //Use the FileReader

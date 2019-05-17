@@ -1,8 +1,11 @@
 const gpmfExtract = require('../');
 const fs = require('fs');
 
-const file = fs.readFileSync('./samples/larg.mp4');
+const file = fs.readFileSync('./samples/karma.mp4');
 
 gpmfExtract(file)
-  .then(raw => console.log('data received'))
+  .then(result => {
+    console.log('Length of data received:', result.rawData.length);
+    console.log('Framerate of data received:', result.timing.frameSpeed);
+  })
   .catch(error => console.log(error));

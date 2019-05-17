@@ -16,8 +16,17 @@ function toBuffer(ab) {
 test('The output should match the raw sample', async () => {
   expect.assertions(1);
   gpmfExtract(file)
-    .then(rd => {
-      expect(Buffer.compare(toBuffer(rd), extracted)).toBe(0);
+    .then(res => {
+      expect(Buffer.compare(toBuffer(res.rawData), extracted)).toBe(0);
+    })
+    .catch(e => console.log(e));
+});
+
+test('The output should have framerate data', async () => {
+  expect.assertions(1);
+  gpmfExtract(file)
+    .then(res => {
+      expect(res.timing.frameSpeed).toBe(0.03336666666666667);
     })
     .catch(e => console.log(e));
 });

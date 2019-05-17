@@ -12,9 +12,9 @@ Use:
 
 ```js
 const gpmfExtract = require('gpmf-extract');
-let rawData;
-gpmfExtract(file).then(rd => {
-  rawData = rd;
+gpmfExtract(file).then(res => {
+  console.log('Length of data received:', res.rawData.length);
+  console.log('Framerate of data received:', 1 / res.timing.frameSpeed);
   // Do what you want with the data
 });
 ```
@@ -24,9 +24,7 @@ If using it in the browser, you must specify it in the second argument. Optional
 ```js
 const gpmfExtract = require('gpmf-extract');
 const progress = percent => console.log(`${percent}% processed`);
-let rawData;
-gpmfExtract(file, true, progress).then(rd => {
-  rawData = rd;
+gpmfExtract(file, true, progress).then(res => {
   // Do what you want with the data
 });
 ```
