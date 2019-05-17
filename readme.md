@@ -45,5 +45,4 @@ If you liked this you might like other [creative coding projects](https://tailor
 
 ## To-DO
 
-- publish
 - Extract from .mov?
