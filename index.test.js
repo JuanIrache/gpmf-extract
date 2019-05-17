@@ -26,7 +26,7 @@ test('The output should have framerate data', async () => {
   expect.assertions(1);
   gpmfExtract(file)
     .then(res => {
-      expect(res.timing.frameSpeed).toBe(0.03336666666666667);
+      expect(res.timing.frameDuration).toBe(0.03336666666666667);
     })
     .catch(e => console.log(e));
 });

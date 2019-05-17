@@ -26,7 +26,7 @@ module.exports = function(file, isBrowser = false, update) {
         } else if (videoData.tracks[i].type == 'video') {
           var vid = videoData.tracks[i];
           //Deduce framerate from video track
-          timing.frameSpeed = vid.movie_duration / vid.movie_timescale / vid.nb_samples;
+          timing.frameDuration = vid.movie_duration / vid.movie_timescale / vid.nb_samples;
         }
       }
       if (trackId != null) {
