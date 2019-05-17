@@ -4,12 +4,22 @@ var mp4boxFile;
 var trackId;
 var nb_samples;
 var gotSamples;
-//Will store timing data to help analyse the extracted data
+
+//Will convert the final uint8Array to buffer
+function toBuffer(ab) {
+  var buf = Buffer.alloc(ab.byteLength);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buf.length; ++i) {
+    buf[i] = view[i];
+  }
+  return buf;
+}
 
 module.exports = function(file, isBrowser = false, update) {
   return new Promise(function(resolve, reject) {
     mp4boxFile = MP4Box.createFile(false);
-    var rawData;
+    var uintArr;
+    //Will store timing data to help analyse the extracted data
     var timing = {};
     mp4boxFile.onError = function(e) {
       reject(e);
@@ -46,15 +56,18 @@ module.exports = function(file, isBrowser = false, update) {
           timing.samples = [];
 
           //Store them in Uint8Array
-          rawData = new Uint8Array(totalSamples);
+          uintArr = new Uint8Array(totalSamples);
           var runningCount = 0;
           samples.forEach(function(sample) {
             timing.samples.push({ cts: sample.cts, duration: sample.duration });
             for (var i = 0; i < sample.size; i++) {
-              rawData.set(sample.data, runningCount);
+              uintArr.set(sample.data, runningCount);
             }
             runningCount += sample.size;
           });
+
+          //Convert to Buffer
+          var rawData = toBuffer(uintArr);
 
           //And return it
           resolve({ rawData, timing });
