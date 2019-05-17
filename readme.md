@@ -1,8 +1,12 @@
 # GPMF extract
 
-Finds the metadata track in GoPro (Hero5 and later) video files (or any other camera that implements the GPMF) and extracts it for later analysis and processing.
+Finds the metadata track in GoPro (Hero5 and later) video files (or any other camera that implements GPMF) and extracts it for later analysis and processing.
 
-Accepts a File and returns a promise that resolves to Buffer.
+Accepts a File and returns a Promise that resolves to an object with a Buffer (rawData) and timing data (timing), useful for interpreting the data.
+
+Once extracted, you can process the data with [gopro-telemetry](https://github.com/JuanIrache/gopro-telemetry).
+
+Install:
 
 ```shell
 $ npm i gpmf-extract
@@ -29,8 +33,6 @@ gpmfExtract(file, true, progress).then(res => {
 });
 ```
 
-Once extracted, you can process the data with [gopro-telemetry](https://github.com/JuanIrache/gopro-telemetry).
-
 This code was created for the [GoPro Telemetry Extractor](https://tailorandwayne.com/gopro-telemetry-extractor/).
 
 Here's a [playlist with cool uses of the GoPro metadata ](https://www.youtube.com/watch?v=V4eJDQik-so&list=PLgoeWSWqXedK_TbrZXg7L926Kzb-g_CXz).
@@ -43,6 +45,5 @@ If you liked this you might like other [creative coding projects](https://tailor
 
 ## To-DO
 
-- Export time data
 - publish
 - Extract from .mov?
