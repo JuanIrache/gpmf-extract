@@ -1,12 +1,12 @@
 var MP4Box = require('mp4box');
 var readBlock = require('./readBlock');
 var readBlockWorker = require('./readBlockWorker');
+const InlineWorker = require('inline-worker');
 var mp4boxFile;
 var trackId;
 var nb_samples;
 var worker;
 var workerRunning;
-var workerSkipped;
 
 //Will convert the final uint8Array to buffer
 function toBuffer(ab) {
@@ -93,28 +93,24 @@ module.exports = function(file, isBrowser = false, update) {
       };
       if (window.Worker) {
         // Build a worker from an anonymous function body
-        var blobURL = (webkitURL || URL).createObjectURL(
-          new Blob(['(', readBlockWorker.toString(), ')()'], { type: 'application/javascript' })
-        );
-        worker = new Worker(blobURL);
+        // var blobURL = (webkitURL || URL).createObjectURL(
+        //   new Blob(['(', readBlockWorker.toString(), ')()'], { type: 'application/javascript' })
+        // );
+        // worker = new Worker(blobURL);
+        worker = new InlineWorker(readBlockWorker, {});
 
         worker.onmessage = function(e) {
           if (e.data[0] === 'update' && update) update(e.data[1]);
           else if (e.data[0] === 'onparsedbuffer') onparsedbuffer(e.data[1], e.data[2]);
           else if (e.data[0] === 'flush') flush();
-          else if (e.data[0] === 'workerRunning' && !workerSkipped) workerRunning = true;
+          else if (e.data[0] === 'workerRunning') workerRunning = true;
+        };
+
+        worker.onerror = function(e) {
+          readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
         };
 
         worker.postMessage(['readBlock', file]); // Start the worker.
-
-        setTimeout(() => {
-          if (!workerRunning) {
-            workerSkipped = true;
-            readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
-          }
-        }, 300);
-        // Won't be needing this anymore
-        URL.revokeObjectURL(blobURL);
       } else readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
     } else {
       //Nodejs
