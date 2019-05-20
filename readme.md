@@ -45,9 +45,7 @@ If you liked this you might like other [creative coding projects](https://tailor
 
 ## To-DO
 
-- Larger chunks in browser for faster loading
-- Web Worker or other asynchronous strategy for browser
-- Comment new code
-- Increare browser compatibility
+- Unduplicate code from readBlock and readBlockWorker
+- Increase browser compatibility
 - Ideas for handling large files in Node?
 - Extract from .mov?
