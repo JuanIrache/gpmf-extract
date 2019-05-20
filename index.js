@@ -92,11 +92,6 @@ module.exports = function(file, isBrowser = false, update) {
         mp4boxFile.flush();
       };
       if (window.Worker) {
-        // Build a worker from an anonymous function body
-        // var blobURL = (webkitURL || URL).createObjectURL(
-        //   new Blob(['(', readBlockWorker.toString(), ')()'], { type: 'application/javascript' })
-        // );
-        // worker = new Worker(blobURL);
         worker = new InlineWorker(readBlockWorker, {});
 
         worker.onmessage = function(e) {
@@ -107,11 +102,11 @@ module.exports = function(file, isBrowser = false, update) {
         };
 
         worker.onerror = function(e) {
-          readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
+          readBlock.read(file, { update, onparsedbuffer, flush });
         };
 
         worker.postMessage(['readBlock', file]); // Start the worker.
-      } else readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
+      } else readBlock.read(file, { update, onparsedbuffer, flush });
     } else {
       //Nodejs
       var arrayBuffer = new Uint8Array(file).buffer;

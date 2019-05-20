@@ -8,7 +8,7 @@ function stop() {
   gotSamples = true;
 }
 
-function read(file, mp4boxFile, { update, onparsedbuffer, flush }) {
+function read(file, { update, onparsedbuffer, flush }) {
   var fileSize = file.size;
   var r = new FileReader();
   var blob = file.slice(offset, chunkSize + offset);
@@ -28,10 +28,10 @@ function read(file, mp4boxFile, { update, onparsedbuffer, flush }) {
       flush();
       offset = 0;
       offsetFlag++;
-      if (!gotSamples) read(file, mp4boxFile, { update, onparsedbuffer, flush });
+      if (!gotSamples) read(file, { update, onparsedbuffer, flush });
       return;
     }
-    read(file, mp4boxFile, { update, onparsedbuffer, flush });
+    read(file, { update, onparsedbuffer, flush });
   };
   r.onload = onBlockRead;
   //Use the FileReader
