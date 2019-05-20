@@ -47,5 +47,7 @@ If you liked this you might like other [creative coding projects](https://tailor
 
 - Larger chunks in browser for faster loading
 - Web Worker or other asynchronous strategy for browser
+- Comment new code
+- Increare browser compatibility
 - Ideas for handling large files in Node?
 - Extract from .mov?

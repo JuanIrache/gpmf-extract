@@ -6,6 +6,7 @@ var trackId;
 var nb_samples;
 var worker;
 var workerRunning;
+var workerSkipped;
 
 //Will convert the final uint8Array to buffer
 function toBuffer(ab) {
@@ -49,7 +50,8 @@ module.exports = function(file, isBrowser = false, update) {
 
         //When samples arrive
         mp4boxFile.onSamples = function(id, user, samples) {
-          worker.terminate();
+          if (workerRunning) worker.terminate();
+          else readBlock.stop();
           var totalSamples = samples.reduce(function(acc, cur) {
             return acc + cur.size;
           }, 0);
@@ -82,6 +84,13 @@ module.exports = function(file, isBrowser = false, update) {
 
     //Use chunk system in browser
     if (isBrowser) {
+      var onparsedbuffer = function(buffer, offset) {
+        buffer.fileStart = offset;
+        mp4boxFile.appendBuffer(buffer);
+      };
+      var flush = function() {
+        mp4boxFile.flush();
+      };
       if (window.Worker) {
         // Build a worker from an anonymous function body
         var blobURL = URL.createObjectURL(new Blob(['(', readBlockWorker.toString(), ')()'], { type: 'application/javascript' }));
@@ -90,24 +99,22 @@ module.exports = function(file, isBrowser = false, update) {
         // Won't be needing this anymore
         URL.revokeObjectURL(blobURL);
 
-        var onparsedbuffer = function(mp4boxFile, buffer, offset) {
-          buffer.fileStart = offset;
-          mp4boxFile.appendBuffer(buffer);
-        };
-
         worker.onmessage = function(e) {
           if (e.data[0] === 'update' && update) update(e.data[1]);
-          else if (e.data[0] === 'onparsedbuffer') onparsedbuffer(mp4boxFile, e.data[1], e.data[2]);
-          else if (e.data[0] === 'flush') mp4boxFile.flush();
-          else if (e.data[0] === 'workerRunning') workerRunning = true;
+          else if (e.data[0] === 'onparsedbuffer') onparsedbuffer(e.data[1], e.data[2]);
+          else if (e.data[0] === 'flush') flush();
+          else if (e.data[0] === 'workerRunning' && !workerSkipped) workerRunning = true;
         };
 
         worker.postMessage(['readBlock', file]); // Start the worker.
 
         setTimeout(() => {
-          if (!workerRunning) readBlock(file, mp4boxFile, false, update);
+          if (!workerRunning) {
+            workerSkipped = true;
+            readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
+          }
         }, 300);
-      }
+      } else readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
     } else {
       //Nodejs
       var arrayBuffer = new Uint8Array(file).buffer;
