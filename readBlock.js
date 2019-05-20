@@ -21,9 +21,7 @@ function read(file, mp4boxFile, { update, onparsedbuffer, flush }) {
       //Provide proress percentage
       const prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
       if (update) update(prog);
-    } else {
-      reject('Read error: ' + evt.target.error, '');
-    }
+    } else reject('Read error: ' + evt.target.error, '');
 
     //Adapt offset to larger file sizes
     if (offset >= fileSize) {

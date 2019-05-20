@@ -93,11 +93,10 @@ module.exports = function(file, isBrowser = false, update) {
       };
       if (window.Worker) {
         // Build a worker from an anonymous function body
-        var blobURL = URL.createObjectURL(new Blob(['(', readBlockWorker.toString(), ')()'], { type: 'application/javascript' }));
+        var blobURL = (webkitURL || URL).createObjectURL(
+          new Blob(['(', readBlockWorker.toString(), ')()'], { type: 'application/javascript' })
+        );
         worker = new Worker(blobURL);
-
-        // Won't be needing this anymore
-        URL.revokeObjectURL(blobURL);
 
         worker.onmessage = function(e) {
           if (e.data[0] === 'update' && update) update(e.data[1]);
@@ -114,6 +113,8 @@ module.exports = function(file, isBrowser = false, update) {
             readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
           }
         }, 300);
+        // Won't be needing this anymore
+        URL.revokeObjectURL(blobURL);
       } else readBlock.read(file, mp4boxFile, { update, onparsedbuffer, flush });
     } else {
       //Nodejs
