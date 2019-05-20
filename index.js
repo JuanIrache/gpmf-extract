@@ -50,8 +50,10 @@ module.exports = function(file, isBrowser = false, update) {
 
         //When samples arrive
         mp4boxFile.onSamples = function(id, user, samples) {
-          if (workerRunning) worker.terminate();
-          else readBlock.stop();
+          if (isBrowser) {
+            if (workerRunning) worker.terminate();
+            else readBlock.stop();
+          }
           var totalSamples = samples.reduce(function(acc, cur) {
             return acc + cur.size;
           }, 0);
