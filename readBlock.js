@@ -1,46 +1,43 @@
 //Read chunks progressively in browser
-var chunkSize = 1024 * 1024; // bytes
+var chunkSize = 1024 * 1024 * 2; // bytes
 var offsetFlag = 0;
 var offset = 0;
+var gotSamples;
 
-function readBlock(file, mp4boxFile, gotSamples, update) {
+function stop() {
+  gotSamples = true;
+}
+
+//We get functions to run on certain event from parent function
+function read(file, { update, onparsedbuffer, flush }) {
   var fileSize = file.size;
   var r = new FileReader();
   var blob = file.slice(offset, chunkSize + offset);
   var onBlockRead = function(evt) {
     if (evt.target.error == null) {
-      //Add data to mp4box
-      var onparsedbuffer = function(mp4box, buffer) {
-        buffer.fileStart = offset;
-        mp4box.appendBuffer(buffer);
-      };
-      onparsedbuffer(mp4boxFile, evt.target.result);
+      //Tell parent function to add data to mp4box
+      onparsedbuffer(evt.target.result, offset);
       //Record offset for next chunk
       offset += evt.target.result.byteLength;
-      if (update) {
-        //Provide proress percentage
-        const prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
-        update(prog);
-      }
-    } else {
-      reject('Read error: ' + evt.target.error, '');
-    }
+      //Provide proress percentage to parent function
+      const prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
+      if (update) update(prog);
+    } else reject('Read error: ' + evt.target.error, '');
 
     //Adapt offset to larger file sizes
     if (offset >= fileSize) {
-      mp4boxFile.flush();
-      if (!gotSamples) {
-        offset = 0;
-        offsetFlag++;
-        readBlock(file, mp4boxFile, gotSamples, update);
-      }
+      //Tell parent function to flush mp4box
+      flush();
+      offset = 0;
+      offsetFlag++;
+      if (!gotSamples) read(file, { update, onparsedbuffer, flush });
       return;
     }
-    readBlock(file, mp4boxFile, gotSamples, update);
+    read(file, { update, onparsedbuffer, flush });
   };
   r.onload = onBlockRead;
   //Use the FileReader
   r.readAsArrayBuffer(blob);
 }
 
-module.exports = readBlock;
+module.exports = { read, stop };

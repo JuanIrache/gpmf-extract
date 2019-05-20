@@ -1,9 +1,12 @@
 var MP4Box = require('mp4box');
 var readBlock = require('./readBlock');
+var readBlockWorker = require('./readBlockWorker');
+const InlineWorker = require('inline-worker');
 var mp4boxFile;
 var trackId;
 var nb_samples;
-var gotSamples;
+var worker;
+var workerRunning = true;
 
 //Will convert the final uint8Array to buffer
 function toBuffer(ab) {
@@ -47,7 +50,8 @@ module.exports = function(file, isBrowser = false, update) {
 
         //When samples arrive
         mp4boxFile.onSamples = function(id, user, samples) {
-          gotSamples = true;
+          if (workerRunning) worker.terminate();
+          else readBlock.stop();
           var totalSamples = samples.reduce(function(acc, cur) {
             return acc + cur.size;
           }, 0);
@@ -79,8 +83,35 @@ module.exports = function(file, isBrowser = false, update) {
     };
 
     //Use chunk system in browser
-    if (isBrowser) readBlock(file, mp4boxFile, gotSamples, update);
-    else {
+    if (isBrowser) {
+      //Define functions the child process will call
+      var onparsedbuffer = function(buffer, offset) {
+        buffer.fileStart = offset;
+        mp4boxFile.appendBuffer(buffer);
+      };
+      var flush = function() {
+        mp4boxFile.flush();
+      };
+      //Try to use a web worker to avoid blocking the browser
+      if (window.Worker) {
+        worker = new InlineWorker(readBlockWorker, {});
+        worker.onmessage = function(e) {
+          //Run functions when the web worker requestst them
+          if (e.data[0] === 'update' && update) update(e.data[1]);
+          else if (e.data[0] === 'onparsedbuffer') onparsedbuffer(e.data[1], e.data[2]);
+          else if (e.data[0] === 'flush') flush();
+        };
+
+        //If the worker crashes, run the old function //TODO, unduplicate code
+        worker.onerror = function(e) {
+          workerRunning = false;
+          readBlock.read(file, { update, onparsedbuffer, flush });
+        };
+        //Start worker
+        worker.postMessage(['readBlock', file]);
+        //If workers not supported, use old strategy
+      } else readBlock.read(file, { update, onparsedbuffer, flush });
+    } else {
       //Nodejs
       var arrayBuffer = new Uint8Array(file).buffer;
       arrayBuffer.fileStart = 0;
