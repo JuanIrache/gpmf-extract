@@ -1,9 +1,11 @@
 var MP4Box = require('mp4box');
 var readBlock = require('./readBlock');
+var readBlockWorker = require('./readBlockWorker');
 var mp4boxFile;
 var trackId;
 var nb_samples;
-var gotSamples;
+var worker;
+var workerRunning;
 
 //Will convert the final uint8Array to buffer
 function toBuffer(ab) {
@@ -47,7 +49,7 @@ module.exports = function(file, isBrowser = false, update) {
 
         //When samples arrive
         mp4boxFile.onSamples = function(id, user, samples) {
-          gotSamples = true;
+          worker.terminate();
           var totalSamples = samples.reduce(function(acc, cur) {
             return acc + cur.size;
           }, 0);
@@ -79,8 +81,34 @@ module.exports = function(file, isBrowser = false, update) {
     };
 
     //Use chunk system in browser
-    if (isBrowser) readBlock(file, mp4boxFile, gotSamples, update);
-    else {
+    if (isBrowser) {
+      if (window.Worker) {
+        // Build a worker from an anonymous function body
+        var blobURL = URL.createObjectURL(new Blob(['(', readBlockWorker.toString(), ')()'], { type: 'application/javascript' }));
+        worker = new Worker(blobURL);
+
+        // Won't be needing this anymore
+        URL.revokeObjectURL(blobURL);
+
+        var onparsedbuffer = function(mp4boxFile, buffer, offset) {
+          buffer.fileStart = offset;
+          mp4boxFile.appendBuffer(buffer);
+        };
+
+        worker.onmessage = function(e) {
+          if (e.data[0] === 'update' && update) update(e.data[1]);
+          else if (e.data[0] === 'onparsedbuffer') onparsedbuffer(mp4boxFile, e.data[1], e.data[2]);
+          else if (e.data[0] === 'flush') mp4boxFile.flush();
+          else if (e.data[0] === 'workerRunning') workerRunning = true;
+        };
+
+        worker.postMessage(['readBlock', file]); // Start the worker.
+
+        setTimeout(() => {
+          if (!workerRunning) readBlock(file, mp4boxFile, false, update);
+        }, 300);
+      }
+    } else {
       //Nodejs
       var arrayBuffer = new Uint8Array(file).buffer;
       arrayBuffer.fileStart = 0;
