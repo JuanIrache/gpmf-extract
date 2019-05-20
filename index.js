@@ -1,6 +1,6 @@
 var MP4Box = require('mp4box');
-var readBlock = require('./readBlock');
-var readBlockWorker = require('./readBlockWorker');
+var readBlock = require('./code/readBlock');
+var readBlockWorker = require('./code/readBlockWorker');
 const InlineWorker = require('inline-worker');
 var mp4boxFile;
 var trackId;
