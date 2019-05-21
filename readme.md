@@ -47,5 +47,5 @@ If you liked this you might like other [creative coding projects](https://tailor
 
 - Unduplicate code from readBlock and readBlockWorker
 - Increase browser compatibility
-- Ideas for handling large files in Node?
+- Ideas for handling large files in Node? (maybe trimming the video in chunks multiple of 1.001Hz) https://github.com/gopro/gpmf-parser/issues/37
 - Extract from .mov?
