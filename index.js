@@ -1,6 +1,6 @@
 var MP4Box = require('mp4box');
-var readBlock = require('./readBlock');
-var readBlockWorker = require('./readBlockWorker');
+var readBlock = require('./code/readBlock');
+var readBlockWorker = require('./code/readBlockWorker');
 const InlineWorker = require('inline-worker');
 var mp4boxFile;
 var trackId;
@@ -50,8 +50,10 @@ module.exports = function(file, isBrowser = false, update) {
 
         //When samples arrive
         mp4boxFile.onSamples = function(id, user, samples) {
-          if (workerRunning) worker.terminate();
-          else readBlock.stop();
+          if (isBrowser) {
+            if (workerRunning) worker.terminate();
+            else readBlock.stop();
+          }
           var totalSamples = samples.reduce(function(acc, cur) {
             return acc + cur.size;
           }, 0);

@@ -1,4 +1,4 @@
-const gpmfExtract = require('./');
+const gpmfExtract = require('..');
 const fs = require('fs');
 
 const file = fs.readFileSync('./samples/karma.mp4');
