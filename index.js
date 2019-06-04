@@ -1,7 +1,7 @@
 var MP4Box = require('mp4box');
 var readBlock = require('./code/readBlock');
 var readBlockWorker = require('./code/readBlockWorker');
-const InlineWorker = require('inline-worker');
+var InlineWorker = require('inline-worker');
 var mp4boxFile;
 var trackId;
 var nb_samples;
@@ -9,6 +9,7 @@ var worker;
 var workerRunning = true;
 
 //Will convert the final uint8Array to buffer
+//https://stackoverflow.com/a/12101012/3362074
 function toBuffer(ab) {
   var buf = Buffer.alloc(ab.byteLength);
   var view = new Uint8Array(ab);
@@ -18,15 +19,23 @@ function toBuffer(ab) {
   return buf;
 }
 
+//And back
+function toArrayBuffer(buf) {
+  var ab = new ArrayBuffer(buf.length);
+  var view = new Uint8Array(ab);
+  for (var i = 0; i < buf.length; ++i) {
+    view[i] = buf[i];
+  }
+  return ab;
+}
+
 module.exports = function(file, isBrowser = false, update) {
   return new Promise(function(resolve, reject) {
     mp4boxFile = MP4Box.createFile(false);
     var uintArr;
     //Will store timing data to help analyse the extracted data
     var timing = {};
-    mp4boxFile.onError = function(e) {
-      reject(e);
-    };
+    mp4boxFile.onError = reject;
 
     //When the data is ready, look for the right track
     mp4boxFile.onReady = function(videoData) {
@@ -91,9 +100,7 @@ module.exports = function(file, isBrowser = false, update) {
         buffer.fileStart = offset;
         mp4boxFile.appendBuffer(buffer);
       };
-      var flush = function() {
-        mp4boxFile.flush();
-      };
+      var flush = mp4boxFile.flush;
       //Try to use a web worker to avoid blocking the browser
       if (window.Worker) {
         worker = new InlineWorker(readBlockWorker, {});
@@ -115,7 +122,7 @@ module.exports = function(file, isBrowser = false, update) {
       } else readBlock.read(file, { update, onparsedbuffer, flush });
     } else {
       //Nodejs
-      var arrayBuffer = new Uint8Array(file).buffer;
+      var arrayBuffer = toArrayBuffer(file);
       arrayBuffer.fileStart = 0;
 
       //Assign data to mp4box
