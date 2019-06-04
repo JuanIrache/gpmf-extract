@@ -13,7 +13,7 @@ function read(file, { update, onparsedbuffer, flush }) {
   var fileSize = file.size;
   var r = new FileReader();
   var blob = file.slice(offset, chunkSize + offset);
-  var onBlockRead = function(evt) {
+  r.onload = function(evt) {
     if (evt.target.error == null) {
       //Tell parent function to add data to mp4box
       onparsedbuffer(evt.target.result, offset);
@@ -35,7 +35,6 @@ function read(file, { update, onparsedbuffer, flush }) {
     }
     read(file, { update, onparsedbuffer, flush });
   };
-  r.onload = onBlockRead;
   //Use the FileReader
   r.readAsArrayBuffer(blob);
 }
