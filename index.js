@@ -100,7 +100,7 @@ module.exports = function(file, isBrowser = false, update) {
         buffer.fileStart = offset;
         mp4boxFile.appendBuffer(buffer);
       };
-      var flush = mp4boxFile.flush;
+      // var flush = mp4boxFile.flush;
       //Try to use a web worker to avoid blocking the browser
       if (window.Worker) {
         worker = new InlineWorker(readBlockWorker, {});
@@ -108,18 +108,21 @@ module.exports = function(file, isBrowser = false, update) {
           //Run functions when the web worker requestst them
           if (e.data[0] === 'update' && update) update(e.data[1]);
           else if (e.data[0] === 'onparsedbuffer') onparsedbuffer(e.data[1], e.data[2]);
-          else if (e.data[0] === 'flush') flush();
+          else if (e.data[0] === 'flush') mp4boxFile.flush();
         };
 
         //If the worker crashes, run the old function //TODO, unduplicate code
         worker.onerror = function(e) {
           workerRunning = false;
-          readBlock.read(file, { update, onparsedbuffer, flush });
+          readBlock.read(file, { update, onparsedbuffer, mp4boxFile });
         };
         //Start worker
         worker.postMessage(['readBlock', file]);
         //If workers not supported, use old strategy
-      } else readBlock.read(file, { update, onparsedbuffer, flush });
+      } else {
+        workerRunning = false;
+        readBlock.read(file, { update, onparsedbuffer, mp4boxFile });
+      }
     } else {
       //Nodejs
       var arrayBuffer = toArrayBuffer(file);
