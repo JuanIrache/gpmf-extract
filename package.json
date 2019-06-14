@@ -24,7 +24,7 @@
   "license": "ISC",
   "dependencies": {
     "inline-worker": "^1.1.0",
-    "mp4box": "^0.3.20"
+    "mp4box": "^0.3.19"
   },
   "devDependencies": {
     "jest": "^24.8.0"
