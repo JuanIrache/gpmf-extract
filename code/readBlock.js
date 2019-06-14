@@ -9,7 +9,7 @@ function stop() {
 }
 
 //We get functions to run on certain event from parent function
-function read(file, { update, onparsedbuffer, flush }) {
+function read(file, { update, onparsedbuffer, mp4boxFile }) {
   var fileSize = file.size;
   var r = new FileReader();
   var blob = file.slice(offset, chunkSize + offset);
@@ -27,13 +27,13 @@ function read(file, { update, onparsedbuffer, flush }) {
     //Adapt offset to larger file sizes
     if (offset >= fileSize) {
       //Tell parent function to flush mp4box
-      flush();
+      mp4boxFile.flush();
       offset = 0;
       offsetFlag++;
-      if (!gotSamples) read(file, { update, onparsedbuffer, flush });
+      if (!gotSamples) read(file, { update, onparsedbuffer, mp4boxFile });
       return;
     }
-    read(file, { update, onparsedbuffer, flush });
+    read(file, { update, onparsedbuffer, mp4boxFile });
   };
   //Use the FileReader
   r.readAsArrayBuffer(blob);
