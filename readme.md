@@ -41,7 +41,11 @@ This project is possible thanks to the [gpmf-parser documentation](https://githu
 
 ## More creative coding
 
-If you liked this you might like other [creative coding projects](https://prototyping.barcelona).
+If you liked this you might like some of my [app prototyping](https://prototyping.barcelona).
+
+## Contribution
+
+Please make your changes to the **dev** branch, so that automated tests can be run before merging to **master**. Also, if possible, provide tests for new functionality.
 
 ## To-DO
 
