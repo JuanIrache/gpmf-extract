@@ -33,7 +33,7 @@ gpmfExtract(file, true, progress).then(res => {
 });
 ```
 
-This code was created for the [GoPro Telemetry Extractor](https://tailorandwayne.com/gopro-telemetry-extractor/).
+This code was created for the [GoPro Telemetry Extractor](https://goprotelemetryextractor.com/free).
 
 Here's a [playlist with cool uses of the GoPro metadata ](https://www.youtube.com/watch?v=V4eJDQik-so&list=PLgoeWSWqXedK_TbrZXg7L926Kzb-g_CXz).
 
@@ -41,7 +41,7 @@ This project is possible thanks to the [gpmf-parser documentation](https://githu
 
 ## More creative coding
 
-If you liked this you might like other [creative coding projects](https://tailorandwayne.com/coding-projects/).
+If you liked this you might like other [creative coding projects](https://prototyping.barcelona).
 
 ## To-DO
 
