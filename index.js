@@ -97,7 +97,10 @@ module.exports = function(file, isBrowser = false, update) {
     if (isBrowser) {
       //Define functions the child process will call
       var onparsedbuffer = function(buffer, offset) {
-        if (buffer.byteLength === 0) reject('File not compatible');
+        if (buffer.byteLength === 0) {
+          if (worker) worker.terminate();
+          reject('File not compatible');
+        }
         buffer.fileStart = offset;
         mp4boxFile.appendBuffer(buffer);
       };
@@ -115,6 +118,7 @@ module.exports = function(file, isBrowser = false, update) {
         //If the worker crashes, run the old function //TODO, unduplicate code
         worker.onerror = function(e) {
           workerRunning = false;
+          if (worker) worker.terminate();
           readBlock.read(file, { update, onparsedbuffer, mp4boxFile });
         };
         //Start worker
