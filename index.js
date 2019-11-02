@@ -2,11 +2,6 @@ var MP4Box = require('mp4box');
 var readBlock = require('./code/readBlock');
 var readBlockWorker = require('./code/readBlockWorker');
 var InlineWorker = require('inline-worker');
-var mp4boxFile;
-var trackId;
-var nb_samples;
-var worker;
-var workerRunning = true;
 
 //Will convert the final uint8Array to buffer
 //https://stackoverflow.com/a/12101012/3362074
@@ -30,6 +25,11 @@ function toArrayBuffer(buf) {
 }
 
 module.exports = function(file, isBrowser = false, update) {
+  var mp4boxFile;
+  var trackId;
+  var nb_samples;
+  var worker;
+  var workerRunning = true;
   return new Promise(function(resolve, reject) {
     mp4boxFile = MP4Box.createFile(false);
     var uintArr;
@@ -97,6 +97,10 @@ module.exports = function(file, isBrowser = false, update) {
     if (isBrowser) {
       //Define functions the child process will call
       var onparsedbuffer = function(buffer, offset) {
+        if (buffer.byteLength === 0) {
+          if (worker) worker.terminate();
+          reject('File not compatible');
+        }
         buffer.fileStart = offset;
         mp4boxFile.appendBuffer(buffer);
       };
@@ -114,6 +118,7 @@ module.exports = function(file, isBrowser = false, update) {
         //If the worker crashes, run the old function //TODO, unduplicate code
         worker.onerror = function(e) {
           workerRunning = false;
+          if (worker) worker.terminate();
           readBlock.read(file, { update, onparsedbuffer, mp4boxFile });
         };
         //Start worker
@@ -126,6 +131,8 @@ module.exports = function(file, isBrowser = false, update) {
     } else {
       //Nodejs
       var arrayBuffer = toArrayBuffer(file);
+      if (arrayBuffer.byteLength === 0) reject('File not compatible');
+
       arrayBuffer.fileStart = 0;
 
       //Assign data to mp4box
