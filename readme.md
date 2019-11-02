@@ -54,4 +54,4 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 - Ideas for handling large files in Node?
   - (maybe trimming the video in chunks multiple of 1.001Hz) https://github.com/gopro/gpmf-parser/issues/37
   - Using streams didn't work so far: https://github.com/gpac/mp4box.js/issues/181
-- Extract from .mov?
+- Extract highlights
