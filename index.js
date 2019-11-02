@@ -97,6 +97,7 @@ module.exports = function(file, isBrowser = false, update) {
     if (isBrowser) {
       //Define functions the child process will call
       var onparsedbuffer = function(buffer, offset) {
+        if (buffer.byteLength === 0) reject('File not compatible');
         buffer.fileStart = offset;
         mp4boxFile.appendBuffer(buffer);
       };
@@ -126,6 +127,8 @@ module.exports = function(file, isBrowser = false, update) {
     } else {
       //Nodejs
       var arrayBuffer = toArrayBuffer(file);
+      if (arrayBuffer.byteLength === 0) reject('File not compatible');
+
       arrayBuffer.fileStart = 0;
 
       //Assign data to mp4box
