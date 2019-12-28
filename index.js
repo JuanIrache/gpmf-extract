@@ -1,5 +1,5 @@
 var MP4Box = require('mp4box');
-var readBlock = require('./code/readBlock');
+var readBlockFactory = require('./code/readBlock');
 var readBlockWorker = require('./code/readBlockWorker');
 var InlineWorker = require('inline-worker');
 
@@ -31,6 +31,7 @@ module.exports = function(file, isBrowser = false, update) {
   var worker;
   var workerRunning = true;
   return new Promise(function(resolve, reject) {
+    const readBlock = readBlockFactory();
     mp4boxFile = MP4Box.createFile(false);
     var uintArr;
     //Will store timing data to help analyse the extracted data
@@ -106,7 +107,7 @@ module.exports = function(file, isBrowser = false, update) {
       };
       // var flush = mp4boxFile.flush;
       //Try to use a web worker to avoid blocking the browser
-      if (window.Worker) {
+      if (typeof window !== 'undefined' && window.Worker) {
         worker = new InlineWorker(readBlockWorker, {});
         worker.onmessage = function(e) {
           //Run functions when the web worker requestst them
