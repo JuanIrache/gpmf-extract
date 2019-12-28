@@ -107,7 +107,7 @@ module.exports = function(file, isBrowser = false, update) {
       };
       // var flush = mp4boxFile.flush;
       //Try to use a web worker to avoid blocking the browser
-      if (typeof Worker !== 'undefined') {
+      if (typeof window !== 'undefined' && window.Worker) {
         worker = new InlineWorker(readBlockWorker, {});
         worker.onmessage = function(e) {
           //Run functions when the web worker requestst them
