@@ -21,7 +21,7 @@ module.exports = function() {
         //Record offset for next chunk
         offset += evt.target.result.byteLength;
         //Provide proress percentage to parent function
-        const prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
+        var prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
         if (update) update(prog);
       } else reject('Read error: ' + evt.target.error, '');
 
@@ -40,4 +40,4 @@ module.exports = function() {
     r.readAsArrayBuffer(blob);
   }
   return { read, stop };
-}
+};
