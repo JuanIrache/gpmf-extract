@@ -31,7 +31,7 @@ module.exports = function(file, isBrowser = false, update) {
   var worker;
   var workerRunning = true;
   return new Promise(function(resolve, reject) {
-    const readBlock = readBlockFactory();
+    var readBlock = readBlockFactory();
     mp4boxFile = MP4Box.createFile(false);
     var uintArr;
     //Will store timing data to help analyse the extracted data
@@ -49,7 +49,8 @@ module.exports = function(file, isBrowser = false, update) {
         } else if (videoData.tracks[i].type == 'video') {
           var vid = videoData.tracks[i];
           //Deduce framerate from video track
-          timing.frameDuration = vid.movie_duration / vid.movie_timescale / vid.nb_samples;
+          timing.frameDuration =
+            vid.movie_duration / vid.movie_timescale / vid.nb_samples;
         }
       }
       if (trackId != null) {
@@ -112,7 +113,8 @@ module.exports = function(file, isBrowser = false, update) {
         worker.onmessage = function(e) {
           //Run functions when the web worker requestst them
           if (e.data[0] === 'update' && update) update(e.data[1]);
-          else if (e.data[0] === 'onparsedbuffer') onparsedbuffer(e.data[1], e.data[2]);
+          else if (e.data[0] === 'onparsedbuffer')
+            onparsedbuffer(e.data[1], e.data[2]);
           else if (e.data[0] === 'flush') mp4boxFile.flush();
         };
 
