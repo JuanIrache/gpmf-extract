@@ -55,3 +55,8 @@ Please make your changes to the **dev** branch, so that automated tests can be r
   - (maybe trimming the video in chunks multiple of 1.001Hz) https://github.com/gopro/gpmf-parser/issues/37
   - Using streams didn't work so far: https://github.com/gpac/mp4box.js/issues/181
 - Extract highlights
+
+## Acknowledgements/credits
+
+- [Juan Irache](https://github.com/JuanIrache) - Main developer
+- [Jonas Wagner](https://github.com/jwagner) - Contributor
