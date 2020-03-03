@@ -35,7 +35,7 @@ gpmfExtract(file, true, progress).then(res => {
 
 This code was created for the [GoPro Telemetry Extractor](https://goprotelemetryextractor.com/free).
 
-Here's a [playlist with cool uses of the GoPro metadata ](https://www.youtube.com/watch?v=V4eJDQik-so&list=PLgoeWSWqXedK_TbrZXg7L926Kzb-g_CXz).
+Here's a [gallery with cool uses of the GoPro telemetry](https://goprotelemetryextractor.com/gallery).
 
 This project is possible thanks to the [gpmf-parser documentation](https://github.com/gopro/gpmf-parser), open sourced by GoPro.
 
