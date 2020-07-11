@@ -60,3 +60,4 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 
 - [Juan Irache](https://github.com/JuanIrache) - Main developer
 - [Jonas Wagner](https://github.com/jwagner) - Contributor
+- [Thomas Sarlandie](https://github.com/sarfata) - Contributor
