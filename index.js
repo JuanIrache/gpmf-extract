@@ -48,9 +48,9 @@ module.exports = function(file, isBrowser = false, update) {
           timing.start = videoData.tracks[i].created;
         } else if (videoData.tracks[i].type == 'video') {
           var vid = videoData.tracks[i];
+          timing.videoDuration = vid.movie_duration / vid.movie_timescale;
           //Deduce framerate from video track
-          timing.frameDuration =
-            vid.movie_duration / vid.movie_timescale / vid.nb_samples;
+          timing.frameDuration = timing.videoDuration / vid.nb_samples;
         }
       }
       if (trackId != null) {
