@@ -13,20 +13,21 @@ function toBuffer(ab) {
   return buf;
 }
 
-test('The output should match the raw sample', async () => {
-  expect.assertions(1);
-  gpmfExtract(file)
-    .then(res => {
-      expect(Buffer.compare(toBuffer(res.rawData), extracted)).toBe(0);
-    })
-    .catch(e => console.log(e));
-});
+describe('Testing the extracted raw data and timing', () => {
+  let res;
+  beforeAll(async () => {
+    res = await gpmfExtract(file);
+  });
 
-test('The output should have framerate data', async () => {
-  expect.assertions(1);
-  gpmfExtract(file)
-    .then(res => {
-      expect(res.timing.frameDuration).toBe(0.03336666666666667);
-    })
-    .catch(e => console.log(e));
+  test('The output should match the raw sample', () => {
+    expect(Buffer.compare(toBuffer(res.rawData), extracted)).toBe(0);
+  });
+
+  test('The output should have framerate data', () => {
+    expect(res.timing.frameDuration).toBe(0.03336666666666667);
+  });
+
+  test('The output should contain the video duration', () => {
+    expect(res.timing.videoDuration).toBe(12.078733333333334);
+  });
 });
