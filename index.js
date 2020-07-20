@@ -24,13 +24,13 @@ function toArrayBuffer(buf) {
   return ab;
 }
 
-module.exports = function(file, isBrowser = false, update) {
+module.exports = function (file, isBrowser = false, update) {
   var mp4boxFile;
   var trackId;
   var nb_samples;
   var worker;
   var workerRunning = true;
-  return new Promise(function(resolve, reject) {
+  return new Promise(function (resolve, reject) {
     var readBlock = readBlockFactory();
     mp4boxFile = MP4Box.createFile(false);
     var uintArr;
@@ -39,7 +39,7 @@ module.exports = function(file, isBrowser = false, update) {
     mp4boxFile.onError = reject;
 
     //When the data is ready, look for the right track
-    mp4boxFile.onReady = function(videoData) {
+    mp4boxFile.onReady = function (videoData) {
       for (var i = 0; i < videoData.tracks.length; i++) {
         //Find the metadata track. Collect Id and number of samples
         if (videoData.tracks[i].codec == 'gpmd') {
@@ -60,12 +60,12 @@ module.exports = function(file, isBrowser = false, update) {
         });
 
         //When samples arrive
-        mp4boxFile.onSamples = function(id, user, samples) {
+        mp4boxFile.onSamples = function (id, user, samples) {
           if (isBrowser) {
             if (workerRunning) worker.terminate();
             else readBlock.stop();
           }
-          var totalSamples = samples.reduce(function(acc, cur) {
+          var totalSamples = samples.reduce(function (acc, cur) {
             return acc + cur.size;
           }, 0);
 
@@ -75,7 +75,7 @@ module.exports = function(file, isBrowser = false, update) {
           //Store them in Uint8Array
           uintArr = new Uint8Array(totalSamples);
           var runningCount = 0;
-          samples.forEach(function(sample) {
+          samples.forEach(function (sample) {
             timing.samples.push({ cts: sample.cts, duration: sample.duration });
             uintArr.set(sample.data, runningCount);
             runningCount += sample.size;
@@ -96,7 +96,7 @@ module.exports = function(file, isBrowser = false, update) {
     //Use chunk system in browser
     if (isBrowser) {
       //Define functions the child process will call
-      var onparsedbuffer = function(buffer, offset) {
+      var onparsedbuffer = function (buffer, offset) {
         if (buffer.byteLength === 0) {
           if (worker) worker.terminate();
           reject('File not compatible');
@@ -108,7 +108,7 @@ module.exports = function(file, isBrowser = false, update) {
       //Try to use a web worker to avoid blocking the browser
       if (typeof window !== 'undefined' && window.Worker) {
         worker = new InlineWorker(readBlockWorker, {});
-        worker.onmessage = function(e) {
+        worker.onmessage = function (e) {
           //Run functions when the web worker requestst them
           if (e.data[0] === 'update' && update) update(e.data[1]);
           else if (e.data[0] === 'onparsedbuffer')
@@ -117,7 +117,7 @@ module.exports = function(file, isBrowser = false, update) {
         };
 
         //If the worker crashes, run the old function //TODO, unduplicate code
-        worker.onerror = function(e) {
+        worker.onerror = function (e) {
           workerRunning = false;
           if (worker) worker.terminate();
           readBlock.read(file, { update, onparsedbuffer, mp4boxFile });
