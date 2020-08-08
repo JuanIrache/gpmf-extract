@@ -56,6 +56,16 @@ Please make your changes to the **dev** branch, so that automated tests can be r
   - Using streams didn't work so far: https://github.com/gpac/mp4box.js/issues/181
 - Extract highlights
 
+## Handling large file.
+
+You can call with the path to large file and specify the size of chunk to load.
+More larger the video file is, more larger you should specify the size of chunk.
+
+```js
+const gpmfExtract = require('gpmf-extract');
+gpmfExtract("/path/to/file.mp4",false,undefined, {chunkSize: 100 * 1024 * 1024});
+```
+
 ## Acknowledgements/credits
 
 - [Juan Irache](https://github.com/JuanIrache) - Main developer
