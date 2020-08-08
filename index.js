@@ -2,6 +2,7 @@ var MP4Box = require('mp4box');
 var readBlockFactory = require('./code/readBlock');
 var readBlockWorker = require('./code/readBlockWorker');
 var InlineWorker = require('inline-worker');
+const fs = require('fs');
 
 //Will convert the final uint8Array to buffer
 //https://stackoverflow.com/a/12101012/3362074
@@ -24,7 +25,9 @@ function toArrayBuffer(buf) {
   return ab;
 }
 
-module.exports = function (file, isBrowser = false, update) {
+const DEFAULT_OPTIONS = { chunkSize: 10 * 1024 * 1024 };
+
+module.exports = function (file, isBrowser = false, update, options) {
   var mp4boxFile;
   var trackId;
   var nb_samples;
@@ -131,13 +134,32 @@ module.exports = function (file, isBrowser = false, update) {
       }
     } else {
       //Nodejs
-      var arrayBuffer = toArrayBuffer(file);
-      if (arrayBuffer.byteLength === 0) reject('File not compatible');
+      if (typeof file === "string") {
+        const chunkSize = (options || DEFAULT_OPTIONS).chunkSize || DEFAULT_OPTIONS.chunkSize; 
+        const stream = fs.createReadStream(file, {'highWaterMark': chunkSize});
+        let bytesRead = 0;
+        stream.on('end', () => {
+          mp4boxFile.flush();
+        });
+        stream.on('data', (chunk) => {
+          const arrayBuffer = new Uint8Array(chunk).buffer;
+          arrayBuffer.fileStart = bytesRead;
+          mp4boxFile.appendBuffer(arrayBuffer);
+          bytesRead += chunk.length;
+        });
+        stream.resume();
+      } else if (file instanceof Buffer) {
+        console.log("instance:" + (file instanceof Buffer));
+        var arrayBuffer = toArrayBuffer(file);
+        if (arrayBuffer.byteLength === 0) reject('File not compatible');
 
-      arrayBuffer.fileStart = 0;
+        arrayBuffer.fileStart = 0;
 
-      //Assign data to mp4box
-      mp4boxFile.appendBuffer(arrayBuffer);
+        //Assign data to mp4box
+        mp4boxFile.appendBuffer(arrayBuffer);
+      } else {
+        reject('File not compatible');
+      }
     }
   });
 };
