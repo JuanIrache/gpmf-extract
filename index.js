@@ -35,7 +35,7 @@ module.exports = function (file, isBrowser = false, update, options) {
   var workerRunning = true;
   return new Promise(function (resolve, reject) {
     var readBlock = readBlockFactory();
-    mp4boxFile = MP4Box.createFile(false);
+    mp4boxFile = MP4Box.createFile();
     var uintArr;
     //Will store timing data to help analyse the extracted data
     var timing = {};
@@ -149,7 +149,6 @@ module.exports = function (file, isBrowser = false, update, options) {
         });
         stream.resume();
       } else if (file instanceof Buffer) {
-        console.log("instance:" + (file instanceof Buffer));
         var arrayBuffer = toArrayBuffer(file);
         if (arrayBuffer.byteLength === 0) reject('File not compatible');
 
