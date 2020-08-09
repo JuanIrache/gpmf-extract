@@ -58,12 +58,34 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 
 ## Handling large file.
 
+Please increase the chunk size according to the video file size,
+until the fix for the following mp4box is merged.
+https://github.com/gpac/mp4box.js/issues/205
+
 You can call with the path to large file and specify the size of chunk to load.
 More larger the video file is, more larger you should specify the size of chunk.
 
+Please refer to `code/index.test.js`
+
 ```js
-const gpmfExtract = require('gpmf-extract');
-gpmfExtract("/path/to/file.mp4",false,undefined, {chunkSize: 100 * 1024 * 1024});
+const res = await gpmfExtract(bufferAppender(largeFilePath, 10 * 1024 * 1024));
+
+function bufferAppender(path, chunkSize) {
+  return function(mp4boxFile) {
+    var stream = fs.createReadStream(path, {'highWaterMark': chunkSize});
+    var bytesRead = 0;
+    stream.on('end', () => {
+      mp4boxFile.flush();
+    });
+    stream.on('data', (chunk) => {
+      var arrayBuffer = new Uint8Array(chunk).buffer;
+      arrayBuffer.fileStart = bytesRead;
+      mp4boxFile.appendBuffer(arrayBuffer);
+      bytesRead += chunk.length;
+    });
+    stream.resume();
+  }
+}
 ```
 
 ## Acknowledgements/credits
