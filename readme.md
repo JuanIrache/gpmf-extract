@@ -33,37 +33,12 @@ gpmfExtract(file, true, progress).then(res => {
 });
 ```
 
-This code was created for the [GoPro Telemetry Extractor](https://goprotelemetryextractor.com/free).
+## Handling large files
 
-Here's a [gallery with cool uses of the GoPro telemetry](https://goprotelemetryextractor.com/gallery).
-
-This project is possible thanks to the [gpmf-parser documentation](https://github.com/gopro/gpmf-parser), open sourced by GoPro.
-
-## More creative coding
-
-If you liked this you might like some of my [app prototyping](https://prototyping.barcelona).
-
-## Contribution
-
-Please make your changes to the **dev** branch, so that automated tests can be run before merging to **master**. Also, if possible, provide tests for new functionality.
-
-## To-DO
-
-- Unduplicate code from readBlock and readBlockWorker
-- Increase browser compatibility
-- Ideas for handling large files in Node?
-  - (maybe trimming the video in chunks multiple of 1.001Hz) https://github.com/gopro/gpmf-parser/issues/37
-  - Using streams didn't work so far: https://github.com/gpac/mp4box.js/issues/181
-- Extract highlights
-
-## Handling large file.
-
-Please increase the chunk size according to the video file size,
-until the fix for the following mp4box is merged.
+Please increase the chunk size according to the video file size, until the fix for the following mp4box is merged.
 https://github.com/gpac/mp4box.js/issues/205
 
-You can call with the path to large file and specify the size of chunk to load.
-More larger the video file is, more larger you should specify the size of chunk.
+You can call with the path to a large file and specify the size of chunk to load. The larger the video file is, the larger you should specify the size of the chunk.
 
 Please refer to `code/index.test.js`
 
@@ -87,6 +62,31 @@ function bufferAppender(path, chunkSize) {
   };
 }
 ```
+
+## About
+
+This code was created for the [GoPro Telemetry Extractor](https://goprotelemetryextractor.com/free).
+
+Here's a [gallery with cool uses of the GoPro telemetry](https://goprotelemetryextractor.com/gallery).
+
+This project is possible thanks to the [gpmf-parser documentation](https://github.com/gopro/gpmf-parser), open sourced by GoPro.
+
+## More creative coding
+
+If you liked this you might like some of my [app prototyping](https://prototyping.barcelona).
+
+## Contribution
+
+Please make your changes to the **dev** branch, so that automated tests can be run before merging to **master**. Also, if possible, provide tests for new functionality.
+
+## To-DO
+
+- Unduplicate code from readBlock and readBlockWorker
+- Increase browser compatibility
+- Ideas for handling large files in Node?
+  - (maybe trimming the video in chunks multiple of 1.001Hz) https://github.com/gopro/gpmf-parser/issues/37
+  - Using streams didn't work so far: https://github.com/gpac/mp4box.js/issues/181
+- Extract highlights
 
 ## Acknowledgements/credits
 
