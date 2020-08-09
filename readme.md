@@ -71,20 +71,20 @@ Please refer to `code/index.test.js`
 const res = await gpmfExtract(bufferAppender(largeFilePath, 10 * 1024 * 1024));
 
 function bufferAppender(path, chunkSize) {
-  return function(mp4boxFile) {
-    var stream = fs.createReadStream(path, {'highWaterMark': chunkSize});
+  return function (mp4boxFile) {
+    var stream = fs.createReadStream(path, { highWaterMark: chunkSize });
     var bytesRead = 0;
     stream.on('end', () => {
       mp4boxFile.flush();
     });
-    stream.on('data', (chunk) => {
+    stream.on('data', chunk => {
       var arrayBuffer = new Uint8Array(chunk).buffer;
       arrayBuffer.fileStart = bytesRead;
       mp4boxFile.appendBuffer(arrayBuffer);
       bytesRead += chunk.length;
     });
     stream.resume();
-  }
+  };
 }
 ```
 
