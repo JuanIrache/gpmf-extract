@@ -93,3 +93,4 @@ function bufferAppender(path, chunkSize) {
 - [Juan Irache](https://github.com/JuanIrache) - Main developer
 - [Jonas Wagner](https://github.com/jwagner) - Contributor
 - [Thomas Sarlandie](https://github.com/sarfata) - Contributor
+- [Motoyasu Yamada](https://github.com/motoyasu-yamada) - Contributor
