@@ -33,6 +33,38 @@ gpmfExtract(file, true, progress).then(res => {
 });
 ```
 
+## Handling large files
+
+Please increase the chunk size according to the video file size, until the fix for the following mp4box is merged.
+https://github.com/gpac/mp4box.js/issues/205
+
+You can call with the path to a large file and specify the size of chunk to load. The larger the video file is, the larger you should specify the size of the chunk.
+
+Please refer to `code/index.test.js`
+
+```js
+const res = await gpmfExtract(bufferAppender(largeFilePath, 10 * 1024 * 1024));
+
+function bufferAppender(path, chunkSize) {
+  return function (mp4boxFile) {
+    var stream = fs.createReadStream(path, { highWaterMark: chunkSize });
+    var bytesRead = 0;
+    stream.on('end', () => {
+      mp4boxFile.flush();
+    });
+    stream.on('data', chunk => {
+      var arrayBuffer = new Uint8Array(chunk).buffer;
+      arrayBuffer.fileStart = bytesRead;
+      mp4boxFile.appendBuffer(arrayBuffer);
+      bytesRead += chunk.length;
+    });
+    stream.resume();
+  };
+}
+```
+
+## About
+
 This code was created for the [GoPro Telemetry Extractor](https://goprotelemetryextractor.com/free).
 
 Here's a [gallery with cool uses of the GoPro telemetry](https://goprotelemetryextractor.com/gallery).
@@ -51,9 +83,6 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 
 - Unduplicate code from readBlock and readBlockWorker
 - Increase browser compatibility
-- Ideas for handling large files in Node?
-  - (maybe trimming the video in chunks multiple of 1.001Hz) https://github.com/gopro/gpmf-parser/issues/37
-  - Using streams didn't work so far: https://github.com/gpac/mp4box.js/issues/181
 - Extract highlights
 
 ## Acknowledgements/credits
@@ -61,3 +90,4 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 - [Juan Irache](https://github.com/JuanIrache) - Main developer
 - [Jonas Wagner](https://github.com/jwagner) - Contributor
 - [Thomas Sarlandie](https://github.com/sarfata) - Contributor
+- [Motoyasu Yamada](https://github.com/motoyasu-yamada) - Contributor

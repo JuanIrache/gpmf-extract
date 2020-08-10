@@ -32,7 +32,7 @@ module.exports = function (file, isBrowser = false, update) {
   var workerRunning = true;
   return new Promise(function (resolve, reject) {
     var readBlock = readBlockFactory();
-    mp4boxFile = MP4Box.createFile(false);
+    mp4boxFile = MP4Box.createFile();
     var uintArr;
     //Will store timing data to help analyse the extracted data
     var timing = {};
@@ -131,13 +131,19 @@ module.exports = function (file, isBrowser = false, update) {
       }
     } else {
       //Nodejs
-      var arrayBuffer = toArrayBuffer(file);
-      if (arrayBuffer.byteLength === 0) reject('File not compatible');
+      if (typeof file === "function") {
+        file(mp4boxFile);
+      } else if (file instanceof Buffer) {
+        var arrayBuffer = toArrayBuffer(file);
+        if (arrayBuffer.byteLength === 0) reject('File not compatible');
 
-      arrayBuffer.fileStart = 0;
+        arrayBuffer.fileStart = 0;
 
-      //Assign data to mp4box
-      mp4boxFile.appendBuffer(arrayBuffer);
+        //Assign data to mp4box
+        mp4boxFile.appendBuffer(arrayBuffer);
+      } else {
+        reject('File not compatible');
+      }
     }
   });
 };
