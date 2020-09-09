@@ -45,7 +45,12 @@ module.exports = function (file, isBrowser = false, update) {
         if (videoData.tracks[i].codec == 'gpmd') {
           trackId = videoData.tracks[i].id;
           nb_samples = videoData.tracks[i].nb_samples;
+
           timing.start = videoData.tracks[i].created;
+          // Try to correct GoPro's badly encoded time zone
+          timing.start.setMinutes(
+            timing.start.getMinutes() + timing.start.getTimezoneOffset()
+          );
         } else if (videoData.tracks[i].type == 'video') {
           var vid = videoData.tracks[i];
           timing.videoDuration = vid.movie_duration / vid.movie_timescale;
