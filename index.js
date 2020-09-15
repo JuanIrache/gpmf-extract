@@ -51,7 +51,10 @@ module.exports = function (file, isBrowser = false, update) {
           timing.start.setMinutes(
             timing.start.getMinutes() + timing.start.getTimezoneOffset()
           );
-        } else if (videoData.tracks[i].type == 'video') {
+        } else if (
+          videoData.tracks[i].type == 'video' ||
+          videoData.tracks[i].name === 'VideoHandler'
+        ) {
           var vid = videoData.tracks[i];
           timing.videoDuration = vid.movie_duration / vid.movie_timescale;
           //Deduce framerate from video track
@@ -136,7 +139,7 @@ module.exports = function (file, isBrowser = false, update) {
       }
     } else {
       //Nodejs
-      if (typeof file === "function") {
+      if (typeof file === 'function') {
         file(mp4boxFile);
       } else if (file instanceof Buffer) {
         var arrayBuffer = toArrayBuffer(file);
