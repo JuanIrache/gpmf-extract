@@ -139,7 +139,7 @@ module.exports = function (file, isBrowser = false, update) {
       }
     } else {
       //Nodejs
-      if (typeof file === "function") {
+      if (typeof file === 'function') {
         file(mp4boxFile);
       } else if (file instanceof Buffer) {
         var arrayBuffer = toArrayBuffer(file);
