@@ -40,21 +40,25 @@ module.exports = function (file, isBrowser = false, update) {
 
     //When the data is ready, look for the right track
     mp4boxFile.onReady = function (videoData) {
+      var foundVideo = false;
       for (var i = 0; i < videoData.tracks.length; i++) {
         //Find the metadata track. Collect Id and number of samples
         if (videoData.tracks[i].codec == 'gpmd') {
           trackId = videoData.tracks[i].id;
           nb_samples = videoData.tracks[i].nb_samples;
-
           timing.start = videoData.tracks[i].created;
           // Try to correct GoPro's badly encoded time zone
           timing.start.setMinutes(
             timing.start.getMinutes() + timing.start.getTimezoneOffset()
           );
         } else if (
-          videoData.tracks[i].type == 'video' ||
-          videoData.tracks[i].name === 'VideoHandler'
+          !foundVideo &&
+          (videoData.tracks[i].type === 'video' ||
+            videoData.tracks[i].name === 'VideoHandler' ||
+            videoData.tracks[i].track_height > 0)
         ) {
+          // Only confirm video track if found by type, in case more than one meet the other conditions
+          if (videoData.tracks[i].type === 'video') foundVideo = true;
           var vid = videoData.tracks[i];
           timing.videoDuration = vid.movie_duration / vid.movie_timescale;
           //Deduce framerate from video track
