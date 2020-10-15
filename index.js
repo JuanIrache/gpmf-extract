@@ -101,6 +101,7 @@ module.exports = function (file, isBrowser = false, update) {
         };
         mp4boxFile.start();
       } else {
+        if (worker) worker.terminate();
         reject('Track not found');
       }
     };
