@@ -32,7 +32,8 @@ module.exports = function (file, isBrowser = false, update) {
   var workerRunning = true;
   return new Promise(function (resolve, reject) {
     var readBlock = readBlockFactory();
-    mp4boxFile = MP4Box.createFile();
+    // Providing false gives updates to 100% instead of just 50%
+    mp4boxFile = MP4Box.createFile(false);
     var uintArr;
     //Will store timing data to help analyse the extracted data
     var timing = {};
