@@ -90,7 +90,10 @@ module.exports = function (file, isBrowser = false, update) {
           var runningCount = 0;
           samples.forEach(function (sample) {
             timing.samples.push({ cts: sample.cts, duration: sample.duration });
-            uintArr.set(sample.data, runningCount);
+            // The loop prevents Firefox from crashing
+            for (var i = 0; i < sample.size; i++) {
+              uintArr.set(sample.data, runningCount);
+            }
             runningCount += sample.size;
           });
 
