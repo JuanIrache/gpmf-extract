@@ -1,6 +1,6 @@
 {
   "name": "gpmf-extract",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "description": "Extracts binary GoPro Metadata Format from video files",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,7 @@
   "license": "ISC",
   "dependencies": {
     "inline-worker": "^1.1.0",
-    "mp4box": "^0.3.20"
+    "mp4box": "^0.4.1"
   },
   "devDependencies": {
     "jest": "^24.9.0"
