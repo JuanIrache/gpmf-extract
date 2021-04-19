@@ -91,3 +91,4 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 - [Jonas Wagner](https://github.com/jwagner) - Contributor
 - [Thomas Sarlandie](https://github.com/sarfata) - Contributor
 - [Motoyasu Yamada](https://github.com/motoyasu-yamada) - Contributor
+- [HugoPoi](https://github.com/HugoPoi) - Contributor
