@@ -23,12 +23,16 @@ gpmfExtract(file).then(res => {
 });
 ```
 
-If using it in the browser, you must specify it in the second argument. Optionally, you can also pass a second argument with a function to run when the processed percentage updates.
+You can specify some options in an object as a second argument:
+
+- **browserMode**: Default: _false_. Change behaviour to use in browser. This is optional for debugging reasons
+- **useWorker**: Default: _true_. In browser mode, use a web worker to avoid locking the browser. This is optional as it seems to crash on some recent browsers
+- **progress**: Pass a function to read the processed percentage updates
 
 ```js
 const gpmfExtract = require('gpmf-extract');
 const progress = percent => console.log(`${percent}% processed`);
-gpmfExtract(file, true, progress).then(res => {
+gpmfExtract(file, { browserMode: true, progress }).then(res => {
   // Do what you want with the data
 });
 ```
