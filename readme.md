@@ -85,6 +85,7 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 
 ## To-DO
 
+- Fix #46 Memory allocation with large files on certain browsers when using the web worker option
 - Unduplicate code from readBlock and readBlockWorker
 - Increase browser compatibility
 - Extract highlights
