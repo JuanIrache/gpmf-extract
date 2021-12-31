@@ -24,7 +24,10 @@ function toArrayBuffer(buf) {
   return ab;
 }
 
-module.exports = function (file, isBrowser = false, update) {
+module.exports = function (
+  file,
+  { browserMode, progress, useWorker = true } = {}
+) {
   var mp4boxFile;
   var trackId;
   var nb_samples;
@@ -33,7 +36,7 @@ module.exports = function (file, isBrowser = false, update) {
   return new Promise(function (resolve, reject) {
     var readBlock = readBlockFactory();
     // Providing false gives updates to 100% instead of just 50%, but seems to fail in Node
-    mp4boxFile = MP4Box.createFile(isBrowser ? false : undefined);
+    mp4boxFile = MP4Box.createFile(browserMode ? false : undefined);
     var uintArr;
     //Will store timing data to help analyse the extracted data
     var timing = {};
@@ -74,7 +77,7 @@ module.exports = function (file, isBrowser = false, update) {
 
         //When samples arrive
         mp4boxFile.onSamples = function (id, user, samples) {
-          if (isBrowser) {
+          if (browserMode) {
             if (workerRunning) worker.terminate();
             else readBlock.stop();
           }
@@ -111,7 +114,7 @@ module.exports = function (file, isBrowser = false, update) {
     };
 
     //Use chunk system in browser
-    if (isBrowser) {
+    if (browserMode) {
       //Define functions the child process will call
       var onparsedbuffer = function (buffer, offset) {
         if (buffer.byteLength === 0) {
@@ -123,11 +126,11 @@ module.exports = function (file, isBrowser = false, update) {
       };
       // var flush = mp4boxFile.flush;
       //Try to use a web worker to avoid blocking the browser
-      if (typeof window !== 'undefined' && window.Worker) {
+      if (useWorker && typeof window !== 'undefined' && window.Worker) {
         worker = new InlineWorker(readBlockWorker, {});
         worker.onmessage = function (e) {
           //Run functions when the web worker requestst them
-          if (e.data[0] === 'update' && update) update(e.data[1]);
+          if (e.data[0] === 'update' && progress) progress(e.data[1]);
           else if (e.data[0] === 'onparsedbuffer')
             onparsedbuffer(e.data[1], e.data[2]);
           else if (e.data[0] === 'flush') mp4boxFile.flush();
@@ -137,14 +140,18 @@ module.exports = function (file, isBrowser = false, update) {
         worker.onerror = function (e) {
           workerRunning = false;
           if (worker) worker.terminate();
-          readBlock.read(file, { update, onparsedbuffer, mp4boxFile });
+          readBlock.read(file, {
+            update: progress,
+            onparsedbuffer,
+            mp4boxFile
+          });
         };
         //Start worker
         worker.postMessage(['readBlock', file]);
         //If workers not supported, use old strategy
       } else {
         workerRunning = false;
-        readBlock.read(file, { update, onparsedbuffer, mp4boxFile });
+        readBlock.read(file, { update: progress, onparsedbuffer, mp4boxFile });
       }
     } else {
       //Nodejs

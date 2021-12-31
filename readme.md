@@ -23,44 +23,18 @@ gpmfExtract(file).then(res => {
 });
 ```
 
-If using it in the browser, you must specify it in the second argument. Optionally, you can also pass a second argument with a function to run when the processed percentage updates.
+You can specify some options in an object as a second argument:
+
+- **browserMode**: Default: _false_. Change behaviour to use in browser. This is optional for debugging reasons
+- **useWorker**: Default: _true_. In browser mode, use a web worker to avoid locking the browser. This is optional as it seems to crash on some recent browsers
+- **progress**: Pass a function to read the processed percentage updates
 
 ```js
 const gpmfExtract = require('gpmf-extract');
 const progress = percent => console.log(`${percent}% processed`);
-gpmfExtract(file, true, progress).then(res => {
+gpmfExtract(file, { browserMode: true, progress }).then(res => {
   // Do what you want with the data
 });
-```
-
-## Handling large files
-
-Please increase the chunk size according to the video file size, until the fix for the following mp4box is merged.
-https://github.com/gpac/mp4box.js/issues/205
-
-You can call with the path to a large file and specify the size of chunk to load. The larger the video file is, the larger you should specify the size of the chunk.
-
-Please refer to `code/index.test.js`
-
-```js
-const res = await gpmfExtract(bufferAppender(largeFilePath, 10 * 1024 * 1024));
-
-function bufferAppender(path, chunkSize) {
-  return function (mp4boxFile) {
-    var stream = fs.createReadStream(path, { highWaterMark: chunkSize });
-    var bytesRead = 0;
-    stream.on('end', () => {
-      mp4boxFile.flush();
-    });
-    stream.on('data', chunk => {
-      var arrayBuffer = new Uint8Array(chunk).buffer;
-      arrayBuffer.fileStart = bytesRead;
-      mp4boxFile.appendBuffer(arrayBuffer);
-      bytesRead += chunk.length;
-    });
-    stream.resume();
-  };
-}
 ```
 
 ## About
@@ -81,6 +55,7 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 
 ## To-DO
 
+- Fix #46 Memory allocation with large files on certain browsers when using the web worker option
 - Unduplicate code from readBlock and readBlockWorker
 - Increase browser compatibility
 - Extract highlights
