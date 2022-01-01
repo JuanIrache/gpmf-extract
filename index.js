@@ -109,6 +109,7 @@ module.exports = function (
         mp4boxFile.start();
       } else {
         if (worker) worker.terminate();
+        else readBlock.stop();
         reject('Track not found');
       }
     };
@@ -119,6 +120,7 @@ module.exports = function (
       var onparsedbuffer = function (buffer, offset) {
         if (buffer.byteLength === 0) {
           if (worker) worker.terminate();
+          else readBlock.stop();
           reject('File not compatible');
         }
         buffer.fileStart = offset;
