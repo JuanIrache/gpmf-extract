@@ -133,9 +133,10 @@ module.exports = function (
         worker.onmessage = function (e) {
           //Run functions when the web worker requestst them
           if (e.data[0] === 'update' && progress) progress(e.data[1]);
-          else if (e.data[0] === 'onparsedbuffer')
+          else if (e.data[0] === 'onparsedbuffer') {
             onparsedbuffer(e.data[1], e.data[2]);
-          else if (e.data[0] === 'flush') mp4boxFile.flush();
+          } else if (e.data[0] === 'flush') mp4boxFile.flush();
+          else if (e.data[0] === 'onError') reject(e.data[1]);
         };
 
         //If the worker crashes, run the old function //TODO, unduplicate code
