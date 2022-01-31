@@ -10,7 +10,7 @@ module.exports = function() {
   }
 
   //We get functions to run on certain event from parent function
-  function read(file, { update, onparsedbuffer, mp4boxFile }) {
+  function read(file, { update, onparsedbuffer, mp4boxFile, onError }) {
     var fileSize = file.size;
     var r = new FileReader();
     var blob = file.slice(offset, chunkSize + offset);
@@ -22,8 +22,9 @@ module.exports = function() {
         offset += evt.target.result.byteLength;
         //Provide proress percentage to parent function
         var prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
-        if (update) update(prog);
-      } else reject('Read error: ' + evt.target.error, '');
+        if (prog > 200) onError('Progress went beyond 100%');
+        else if (update) update(prog);
+      } else onError('Read error: ' + evt.target.error);
 
       //Adapt offset to larger file sizes
       if (offset >= fileSize) {
@@ -31,10 +32,12 @@ module.exports = function() {
         mp4boxFile.flush();
         offset = 0;
         offsetFlag++;
-        if (!gotSamples) read(file, { update, onparsedbuffer, mp4boxFile });
+        if (!gotSamples) {
+          read(file, { update, onparsedbuffer, mp4boxFile, onError });
+        }
         return;
       }
-      read(file, { update, onparsedbuffer, mp4boxFile });
+      read(file, { update, onparsedbuffer, mp4boxFile, onError });
     };
     //Use the FileReader
     r.readAsArrayBuffer(blob);

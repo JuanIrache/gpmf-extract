@@ -145,7 +145,8 @@ module.exports = function (
           readBlock.read(file, {
             update: progress,
             onparsedbuffer,
-            mp4boxFile
+            mp4boxFile,
+            onError: reject
           });
         };
         //Start worker
@@ -153,7 +154,12 @@ module.exports = function (
         //If workers not supported, use old strategy
       } else {
         workerRunning = false;
-        readBlock.read(file, { update: progress, onparsedbuffer, mp4boxFile });
+        readBlock.read(file, {
+          update: progress,
+          onparsedbuffer,
+          mp4boxFile,
+          onError: reject
+        });
       }
     } else {
       //Nodejs
