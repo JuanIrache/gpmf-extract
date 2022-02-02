@@ -74,3 +74,4 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 - [Thomas Sarlandie](https://github.com/sarfata) - Contributor
 - [Motoyasu Yamada](https://github.com/motoyasu-yamada) - Contributor
 - [HugoPoi](https://github.com/HugoPoi) - Contributor
+- [gunta987](https://github.com/gunta987) - Contributor
