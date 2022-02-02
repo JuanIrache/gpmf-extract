@@ -127,7 +127,7 @@ module.exports = function (
         if (cancellationToken && cancellationToken.cancelled) {
           if (worker) worker.terminate();
           else readBlock.stop();
-          resolve(null);
+          reject('Canceled by user');
         } else mp4boxFile.appendBuffer(buffer);
       };
       // var flush = mp4boxFile.flush;

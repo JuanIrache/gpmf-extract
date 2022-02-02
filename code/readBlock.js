@@ -37,7 +37,9 @@ module.exports = function() {
         }
         return;
       }
-      read(file, { update, onparsedbuffer, mp4boxFile, onError });
+      if (!gotSamples) {
+        read(file, { update, onparsedbuffer, mp4boxFile, onError });
+      }
     };
     //Use the FileReader
     r.readAsArrayBuffer(blob);
