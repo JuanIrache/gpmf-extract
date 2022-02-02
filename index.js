@@ -26,7 +26,7 @@ function toArrayBuffer(buf) {
 
 module.exports = function (
   file,
-  { browserMode, progress, useWorker = true } = {}
+  { browserMode, progress, useWorker = true, cancellationToken } = {}
 ) {
   var mp4boxFile;
   var trackId;
@@ -124,7 +124,11 @@ module.exports = function (
           reject('File not compatible');
         }
         buffer.fileStart = offset;
-        mp4boxFile.appendBuffer(buffer);
+        if (cancellationToken && cancellationToken.cancelled) {
+          if (worker) worker.terminate();
+          else readBlock.stop();
+          resolve(null);
+        } else mp4boxFile.appendBuffer(buffer);
       };
       // var flush = mp4boxFile.flush;
       //Try to use a web worker to avoid blocking the browser
@@ -133,9 +137,10 @@ module.exports = function (
         worker.onmessage = function (e) {
           //Run functions when the web worker requestst them
           if (e.data[0] === 'update' && progress) progress(e.data[1]);
-          else if (e.data[0] === 'onparsedbuffer')
+          else if (e.data[0] === 'onparsedbuffer') {
             onparsedbuffer(e.data[1], e.data[2]);
-          else if (e.data[0] === 'flush') mp4boxFile.flush();
+          } else if (e.data[0] === 'flush') mp4boxFile.flush();
+          else if (e.data[0] === 'onError') reject(e.data[1]);
         };
 
         //If the worker crashes, run the old function //TODO, unduplicate code
@@ -145,7 +150,8 @@ module.exports = function (
           readBlock.read(file, {
             update: progress,
             onparsedbuffer,
-            mp4boxFile
+            mp4boxFile,
+            onError: reject
           });
         };
         //Start worker
@@ -153,7 +159,12 @@ module.exports = function (
         //If workers not supported, use old strategy
       } else {
         workerRunning = false;
-        readBlock.read(file, { update: progress, onparsedbuffer, mp4boxFile });
+        readBlock.read(file, {
+          update: progress,
+          onparsedbuffer,
+          mp4boxFile,
+          onError: reject
+        });
       }
     } else {
       //Nodejs

@@ -1,6 +1,6 @@
 //Does the same as ReadBlock but in web worker form to avoid blocking the browser
 function worker() {
-  self.onmessage = function(e) {
+  self.onmessage = function (e) {
     if (e.data[0] === 'readBlock') readBlock(e.data[1]);
   };
 
@@ -13,7 +13,7 @@ function worker() {
     var fileSize = file.size;
     var r = new FileReader();
     var blob = file.slice(offset, chunkSize + offset);
-    var onBlockRead = function(evt) {
+    var onBlockRead = function (evt) {
       if (evt.target.error == null) {
         //Tell parent funciton to add data to mp4box
         self.postMessage(['onparsedbuffer', evt.target.result, offset]);
@@ -21,8 +21,10 @@ function worker() {
         offset += evt.target.result.byteLength;
         //Provide proress percentage to parent function
         const prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
-        self.postMessage(['update', prog]);
-      } else reject('Read error: ' + evt.target.error, '');
+        if (prog > 200) {
+          self.postMessage(['onError', 'Progress went beyond 100%']);
+        } else self.postMessage(['update', prog]);
+      } else self.postMessage(['onError', 'Read error: ' + evt.target.error]);
 
       //Adapt offset to larger file sizes
       if (offset >= fileSize) {
