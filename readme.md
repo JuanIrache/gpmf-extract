@@ -32,10 +32,10 @@ You can specify some options in an object as a second argument:
 
 ```js
 const gpmfExtract = require('gpmf-extract');
-const progress = (percent) => console.log(`${percent}% processed`);
+const progress = percent => console.log(`${percent}% processed`);
 const cancellationToken = { cancelled: false };
 gpmfExtract(file, { browserMode: true, progress, cancellationToken }).then(
-  (res) => {
+  res => {
     if (!res) return; //cancelled
     // Do what you want with the data
   }
