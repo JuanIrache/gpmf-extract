@@ -1,4 +1,4 @@
-module.exports = function() {
+module.exports = function () {
   //Read chunks progressively in browser
   var chunkSize = 1024 * 1024 * 2; // bytes
   var offsetFlag = 0;
@@ -14,7 +14,7 @@ module.exports = function() {
     var fileSize = file.size;
     var r = new FileReader();
     var blob = file.slice(offset, chunkSize + offset);
-    r.onload = function(evt) {
+    r.onload = function (evt) {
       if (evt.target.error == null) {
         //Tell parent function to add data to mp4box
         onparsedbuffer(evt.target.result, offset);
@@ -37,7 +37,9 @@ module.exports = function() {
         }
         return;
       }
-      read(file, { update, onparsedbuffer, mp4boxFile, onError });
+      if (!gotSamples) {
+        read(file, { update, onparsedbuffer, mp4boxFile, onError });
+      }
     };
     //Use the FileReader
     r.readAsArrayBuffer(blob);

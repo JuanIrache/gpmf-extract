@@ -26,7 +26,7 @@ function toArrayBuffer(buf) {
 
 module.exports = function (
   file,
-  { browserMode, progress, useWorker = true } = {}
+  { browserMode, progress, useWorker = true, cancellationToken } = {}
 ) {
   var mp4boxFile;
   var trackId;
@@ -124,7 +124,11 @@ module.exports = function (
           reject('File not compatible');
         }
         buffer.fileStart = offset;
-        mp4boxFile.appendBuffer(buffer);
+        if (cancellationToken && cancellationToken.cancelled) {
+          if (worker) worker.terminate();
+          else readBlock.stop();
+          reject('Canceled by user');
+        } else mp4boxFile.appendBuffer(buffer);
       };
       // var flush = mp4boxFile.flush;
       //Try to use a web worker to avoid blocking the browser
