@@ -28,7 +28,7 @@ You can specify some options in an object as a second argument:
 - **browserMode**: Default: _false_. Change behaviour to use in browser. This is optional for debugging reasons
 - **useWorker**: Default: _true_. In browser mode, use a web worker to avoid locking the browser. This is optional as it seems to crash on some recent browsers
 - **progress**: Pass a function to read the processed percentage updates
-- **cancellationToken**: An optional object, containing a cancelled property, that allows for cancelling the extraction process. Currently only supported in browser mode. If cancelled, the extraction process will return null.
+- **cancellationToken**: An optional object, containing a cancelled property, that allows for cancelling the extraction process. Currently only supported in browser mode. If cancelled, the extraction process will fail with the error message "Canceled by user".
 
 ```js
 const gpmfExtract = require('gpmf-extract');
