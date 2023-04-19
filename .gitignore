@@ -1,1 +1,3 @@
 node_modules/
+tests/browser/test.js
+tests/browser/test.js.map
