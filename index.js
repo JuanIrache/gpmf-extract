@@ -24,7 +24,7 @@ function toArrayBuffer(buf) {
   return ab;
 }
 
-module.exports = function (
+function GPMFExtract (
   file,
   { browserMode, progress, useWorker = true, cancellationToken } = {}
 ) {
@@ -184,3 +184,7 @@ module.exports = function (
     }
   });
 };
+
+module.exports = GPMFExtract;
+exports = module.exports;
+exports.GPMFExtract = GPMFExtract;

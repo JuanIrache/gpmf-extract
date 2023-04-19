@@ -3,6 +3,7 @@
   "version": "0.2.5",
   "description": "Extracts binary GoPro Metadata Format from video files",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "jest"
   },
