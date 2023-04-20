@@ -1,4 +1,5 @@
-var config = {
+/** @type {import('jest').Config} */
+const config = {
   projects: [
     {
       displayName: ' Node  ',
@@ -12,6 +13,7 @@ var config = {
       testMatch: ['**/browser.test.js'],
     },
   ],
+  maxConcurrency: 1,
 };
 
 module.exports = config;

@@ -2,14 +2,14 @@
 const { join } = require('path');
 const fs = require('fs');
 
-const extracted = Uint8Array.from(fs.readFileSync('./samples/karma.raw'));
-const mp4Path = join(__dirname, './samples/karma.mp4');
 
+const extracted = Uint8Array.from(fs.readFileSync(join(__dirname, '../samples/karma.raw')));
+const mp4Path = join(__dirname, '../samples/karma.mp4');
 
 describe('Testing the extracted raw data and timing from File in main thread', () => {
   /** @type {import('puppeteer').ElementHandle<HTMLInputElement>} */
   let inputHandle;
-  beforeEach(async () => {
+  beforeAll(async () => {
     await page.goto(`file://${join(__dirname, './browser/index.html')}`, { waitUntil: 'networkidle0' });
     inputHandle = await page.$('input[type=file]');
     await inputHandle.uploadFile(mp4Path);
@@ -21,16 +21,19 @@ describe('Testing the extracted raw data and timing from File in main thread', (
     expect(await page.evaluate(() => typeof GPMFExtract)).toBe('function');
     expect(await page.evaluate(() => GPMFExtract?.name)).toBe('GPMFExtract');
     expect(await page.evaluate(() => document.querySelector('[type=file]').files[0] instanceof File)).toBe(true);
+    expect(await page.evaluate(async () => document.querySelector('[type=file]').files[0].size)).toBe(4134647);
   });
 
   test('The output should match the raw sample', async () => {
-    //await jestPuppeteer.debug();
-
-    const rawData = await page.evaluate(() => GPMFExtract(
+    const { rawData, byteLength } = await page.evaluate(() => GPMFExtract(
       document.querySelector('[type=file]').files[0],
       { browserMode: true, useWorker: false },
-    ).then(res => Array.from(res.rawData)));
-    expect(rawData.byteLength).toBe(extracted.byteLength);
+    ).then(res => ({
+      rawData: Array.from(res.rawData),
+      byteLength: res.rawData.byteLength,
+    })));
+
+    expect(byteLength).toBe(extracted.byteLength);
     expect(rawData.every((val, i) => val == extracted[i])).toBe(true);
   });
 
@@ -51,21 +54,25 @@ describe('Testing the extracted raw data and timing from File in main thread', (
   });
 });
 
-describe.skip('Testing the extracted raw data and timing from File in worker', () => {
+describe('Testing the extracted raw data and timing from File in worker', () => {
   /** @type {import('puppeteer').ElementHandle<HTMLInputElement>} */
   let inputHandle;
-  beforeEach(async () => {
+  beforeAll(async () => {
     await page.goto(`file://${join(__dirname, './browser/index.html')}`);
     inputHandle = await page.$('input[type=file]');
     await inputHandle.uploadFile(mp4Path);
   });
 
   test('The output should match the raw sample', async () => {
-    const rawData = await page.evaluate(() => GPMFExtract(
+    const { rawData, byteLength } = await page.evaluate(() => GPMFExtract(
       document.querySelector('[type=file]').files[0],
-      { browserMode: true, useWorker: false },
-    ).then(res => Array.from(res.rawData)));
-    expect(rawData.byteLength).toBe(extracted.byteLength);
+      { browserMode: true, useWorker: true },
+    ).then(res => ({
+      rawData: Array.from(res.rawData),
+      byteLength: res.rawData.byteLength,
+    })));
+
+    expect(byteLength).toBe(extracted.byteLength);
     expect(rawData.every((val, i) => val == extracted[i])).toBe(true);
   });
 
@@ -86,23 +93,25 @@ describe.skip('Testing the extracted raw data and timing from File in worker', (
   });
 });
 
-describe.skip('Testing the extracted raw data and timing from Blob (in main thread)', () => {
-  /** @type {import('puppeteer').Page} */
-  let page;
+describe('Testing the extracted raw data and timing from Blob (in main thread)', () => {
   /** @type {import('puppeteer').ElementHandle<HTMLInputElement>} */
   let inputHandle;
-  beforeEach(async () => {
+  beforeAll(async () => {
     await page.goto(`file://${join(__dirname, './browser/index.html')}`);
     inputHandle = await page.$('input[type=file]');
     await inputHandle.uploadFile(mp4Path);
   });
 
   test('The output should match the raw sample', async () => {
-    const rawData = await page.evaluate(() => GPMFExtract(
+    const { rawData, byteLength } = await page.evaluate(() => GPMFExtract(
       new Blob([document.querySelector('[type=file]').files[0]]),
       { browserMode: true, useWorker: false },
-    ).then(res => Array.from(res.rawData)));
-    expect(rawData.byteLength).toBe(extracted.byteLength);
+    ).then(res => ({
+      rawData: Array.from(res.rawData),
+      byteLength: res.rawData.byteLength,
+    })));
+
+    expect(byteLength).toBe(extracted.byteLength);
     expect(rawData.every((val, i) => val == extracted[i])).toBe(true);
   });
 
