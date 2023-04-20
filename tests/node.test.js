@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 const gpmfExtract = require('..');
 const fs = require('fs');
 
@@ -13,15 +14,15 @@ function toBuffer(ab) {
   return buf;
 }
 
-/** 
+/**
  * @param {*} path The path to video file
- * @param {*} chunkSize As of August 9, 2020, there is a problem with mp4box.js, 
+ * @param {*} chunkSize As of August 9, 2020, there is a problem with mp4box.js,
  * so please specify a sufficiently large chunksize for the file size.
  * @return {Function}
  */
 function bufferAppender(path, chunkSize) {
   return function(mp4boxFile) {
-    var stream = fs.createReadStream(path, {'highWaterMark': chunkSize});
+    var stream = fs.createReadStream(path, { highWaterMark: chunkSize });
     var bytesRead = 0;
     stream.on('end', () => {
       mp4boxFile.flush();
@@ -59,7 +60,7 @@ describe('Testing the extracted raw data and timing from Buffer', () => {
 describe('Testing the extracted raw data and timing from Path', () => {
   let res;
   beforeAll(async () => {
-    res = await gpmfExtract(bufferAppender(path,10 * 1024 * 1024));
+    res = await gpmfExtract(bufferAppender(path, 10 * 1024 * 1024));
   });
 
   test('The output should match the raw sample', () => {
@@ -76,18 +77,16 @@ describe('Testing the extracted raw data and timing from Path', () => {
   });
 });
 
-/// @see set gpmf-extract-large-file=/gopro/20200802/GH010368.MP4&&npm test
-const largeFilePath = process.env["gpmf-extract-large-file"];
-if (largeFilePath) {
-  describe('Testing the extracted raw data and timing from the path of the full length video: "' + largeFilePath + '"', () => {
-    test('The output should extracted', async() => {
-      jest.setTimeout(30000);
+{
+  /// @see set gpmf-extract-large-file=/gopro/20200802/GH010368.MP4&&npm test
+  const largeFilePath = process.env["gpmf-extract-large-file"];
+  const optionalTest = largeFilePath ? test : test.skip;
+
+  describe(`Testing the extracted raw data and timing from the path of the full length video: "${largeFilePath}"`, () => {
+    optionalTest('The output should extracted', async() => {
       const res = await gpmfExtract(bufferAppender(largeFilePath, 10 * 1024 * 1024));
       expect(res).toEqual(expect.anything());
       expect(res.rawData).toEqual(expect.anything());
-    });
+    }, 30000);
   });
-} else {
-  console.log("Large file test is skipped.");
 }
-

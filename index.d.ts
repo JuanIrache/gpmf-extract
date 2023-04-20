@@ -8,7 +8,7 @@ interface GPMFExtractCommonOptions {
 }
 
 interface GPMFExtractBrowserOptions extends GPMFExtractCommonOptions {
-browserMode: true;
+  browserMode: true;
   /**
    * An object that allows for cancelling the extraction process.
    * Currently only supported in browser mode.
@@ -21,10 +21,8 @@ interface GPMFExtractNodeOptions extends GPMFExtractCommonOptions {
   browserMode: false;
 }
 
-type GPMFExtractOptions = GPMFExtractBrowserOptions | GPMFExtractNodeOptions;
-
-interface GPMFExtractResult {
-  rawData: Buffer;
+interface GPMFExtractResult<P extends 'node' | 'browser'> {
+  rawData: P extends 'node' ? Buffer : Uint8Array;
   timing: {
     /** Duration of video in seconds */
     videoDuration: number;
@@ -45,19 +43,32 @@ type ISOFile = {
   appendBuffer: (buffer: Buffer) => void;
   flush: () => void;
 };
+/**
+ * Finds the metadata track in GoPro (Hero5 and later) video files (or any other camera that implements GPMF) and extracts it for later analysis and processing.
+ * @throws {'Track not found' | 'File not compatible' | 'Canceled by user'}
+ */
 declare function GPMFExtract(
-  file:
-    | Buffer
-    | Blob
-    | File
-    | (
-      (
-        /** `ISOFile` is declared inside `mp4box`, use function `appendBuffer` to append to buffer and `flush` to complete it */
-        file: ISOFile,
-      ) => void
-    ),
-  options?: GPMFExtractOptions,
-): Promise<GPMFExtractResult>;
+  file: Blob | File,
+  options?: GPMFExtractBrowserOptions,
+): Promise<GPMFExtractResult<'browser'>>;
+declare function GPMFExtract(
+  file: Buffer | ((file: ISOFile) => void),
+  options?: GPMFExtractNodeOptions,
+): Promise<GPMFExtractResult<'node'>>;
 
 export default GPMFExtract;
 export { GPMFExtract };
+
+GPMFExtract(
+  file as File,
+  {
+    browserMode: true,
+    cancellationToken: { cancelled: false },
+  }
+)
+GPMFExtract(
+  file as Buffer,
+  {
+    browserMode: false,
+  }
+)

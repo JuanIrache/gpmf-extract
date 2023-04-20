@@ -1,48 +1,90 @@
-module.exports = function () {
-  //Read chunks progressively in browser
-  var chunkSize = 1024 * 1024 * 2; // bytes
-  var offsetFlag = 0;
-  var offset = 0;
-  var gotSamples;
+function createReader() {
+  function readByBlocks(
+    /** @type {File | Blob | Buffer} */
+    file,
+    /** @type {{chunkSize: number, progress: (progress: number) => void, onParsedBuffer: (buffer: ArrayBuffer, offset: number) => void, flush: () => void, onError: (error: string) => void}} */
+    { chunkSize, progress, onParsedBuffer, flush, onError },
+  ) {
+    const fileSize = file.size || file.byteLength;
+    let offset = 0;
 
-  function stop() {
-    gotSamples = true;
-  }
+    /** @type {(stream: (chunk: any) => void) => Promise<any>} */
+    let pipeTo;
 
-  //We get functions to run on certain event from parent function
-  function read(file, { update, onparsedbuffer, mp4boxFile, onError }) {
-    var fileSize = file.size;
-    var r = new FileReader();
-    var blob = file.slice(offset, chunkSize + offset);
-    r.onload = function (evt) {
-      if (evt.target.error == null) {
-        //Tell parent function to add data to mp4box
-        onparsedbuffer(evt.target.result, offset);
-        //Record offset for next chunk
-        offset += evt.target.result.byteLength;
-        //Provide proress percentage to parent function
-        var prog = Math.ceil((50 * offset) / fileSize) + 50 * offsetFlag;
-        if (prog > 200) onError('Progress went beyond 100%');
-        else if (update) update(prog);
-      } else onError('Read error: ' + evt.target.error);
+    const abortController = new AbortController();
+    /** @type {(reason?: any) => void} */
+    const terminate = reason => abortController.abort(reason);
+    if (file.stream || Blob) {
+      // Browser
+      const stream = file.stream ? file.stream() : new Blob([file]).stream();
+      pipeTo = write => stream.pipeTo(
+        new WritableStream({ write }, { size: () => chunkSize }),
+        { signal: abortController.signal },
+      );
+    } else if (Buffer) {
+      // NodeJS
+      pipeTo = write => require('stream').Readable.from(file, { read: () => chunkSize }).pipeTo(
+        new require('stream').Writable({
+          write,
+          signal: abortController.signal,
+        }),
+      );
+    }
 
-      //Adapt offset to larger file sizes
-      if (offset >= fileSize) {
-        //Tell parent function to flush mp4box
-        mp4boxFile.flush();
-        offset = 0;
-        offsetFlag++;
-        if (!gotSamples) {
-          read(file, { update, onparsedbuffer, mp4boxFile, onError });
+    return {
+      terminate,
+      result: pipeTo(chunk => {
+        onParsedBuffer(chunk, offset);
+        offset += chunk.byteLength;
+        const prog = Math.ceil(offset / fileSize * 100);
+        if (prog > 200) {
+          throw new Error('Progress went beyond 100%');
+        } else if (progress) {
+          progress(prog);
         }
-        return;
-      }
-      if (!gotSamples) {
-        read(file, { update, onparsedbuffer, mp4boxFile, onError });
-      }
+      }).then(val => {
+        flush();
+        return val;
+      }).catch(err => {
+        onError(err);
+      }),
     };
-    //Use the FileReader
-    r.readAsArrayBuffer(blob);
   }
-  return { read, stop };
-};
+
+  if (typeof createReader !== 'undefined') {
+    createReader.readByBlocks = readByBlocks;
+    createReader.readByBlocksWorker = createReader;
+  } else {
+    self.onmessage = function (e) {
+      if (e.data[0] === 'readBlock') {
+        const { terminate } = readByBlocks(
+          e.data[1],
+          {
+            chunkSize: 1024 * 1024 * 16,
+            progress(progress) {
+              self.postMessage(['progress', progress]);
+            },
+            onParsedBuffer(buffer, offset) {
+              self.postMessage(['onParsedBuffer', buffer, offset]);
+            },
+            flush() {
+              self.postMessage(['flush']);
+            },
+            onError(err) {
+              self.postMessage(['onError', err]);
+            },
+          },
+        );
+
+        self.onabort = terminate;
+      };
+    };
+  }
+}
+
+// Initialize worker/non-worker
+createReader();
+module.exports = createReader;
+exports = module.exports;
+exports.readByBlocksWorker = createReader.readByBlocksWorker;
+exports.readByBlocks = createReader.readByBlocks;
