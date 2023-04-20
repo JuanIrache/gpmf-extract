@@ -27,6 +27,10 @@ function GPMFExtract (
   file,
   { browserMode, progress, useWorker = true, cancellationToken } = {}
 ) {
+  if (!file) {
+    throw new TypeError('File not provided');
+  }
+
   var trackId;
   var nb_samples;
   /** @type {{ terminate(): void }} */

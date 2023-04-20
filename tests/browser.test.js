@@ -10,7 +10,7 @@ describe('Testing the extracted raw data and timing from File', () => {
   /** @type {import('puppeteer').ElementHandle<HTMLInputElement>} */
   let inputHandle;
   beforeEach(async () => {
-    await page.goto(`file://${join(__dirname, './browser/index.html')}`);
+    await page.goto(`file://${join(__dirname, './browser/index.html')}`, { waitUntil: 'networkidle0' });
     inputHandle = await page.$('input[type=file]');
     await inputHandle.uploadFile(mp4Path);
   });
@@ -18,23 +18,26 @@ describe('Testing the extracted raw data and timing from File', () => {
   test('Library loaded', async () => {
     expect(1).toBe(1);
     expect(await page.evaluate(() => 1)).toBe(1);
+    expect(await page.evaluate(() => typeof GPMFExtract)).toBe('function');
     expect(await page.evaluate(() => GPMFExtract?.name)).toBe('GPMFExtract');
     expect(await page.evaluate(() => document.querySelector('[type=file]').files[0] instanceof File)).toBe(true);
   });
 
   test('The output should match the raw sample', async () => {
+    //await jestPuppeteer.debug();
+
     const res = await page.evaluate(() => GPMFExtract(
       document.querySelector('[type=file]').files[0],
-      { browserMode: true },
+      { browserMode: true, useWorker: false },
     ));
     expect(res.rawData.byteLength).toBe(extracted.byteLength);
     expect(res.rawData.every((val, i) => val == extracted[i])).toBe(true);
-  }, 300000);
+  });
 
   test('The output should have framerate data', async () => {
     const res = await page.evaluate(() => GPMFExtract(
       document.querySelector('[type=file]').files[0],
-      { browserMode: true },
+      { browserMode: true, useWorker: false },
     ));
     expect(res.timing.frameDuration).toBe(0.03336666666666667);
   });
@@ -42,7 +45,7 @@ describe('Testing the extracted raw data and timing from File', () => {
   test('The output should contain the video duration', async () => {
     const res = await page.evaluate(() => GPMFExtract(
       document.querySelector('[type=file]').files[0],
-      { browserMode: true },
+      { browserMode: true, useWorker: false },
     ));
     expect(res.timing.videoDuration).toBe(12.078733333333334);
   });
@@ -97,7 +100,7 @@ describe.skip('Testing the extracted raw data and timing from Blob', () => {
   test('The output should match the raw sample', async () => {
     const res = await page.evaluate(() => GPMFExtract(
       new Blob([document.querySelector('[type=file]').files[0]]),
-      { browserMode: true },
+      { browserMode: true, useWorker: false },
     ));
     expect(res.rawData.byteLength).toBe(extracted.byteLength);
     expect(res.rawData.every((val, i) => val == extracted[i])).toBe(true);
@@ -106,7 +109,7 @@ describe.skip('Testing the extracted raw data and timing from Blob', () => {
   test('The output should have framerate data', async () => {
     const res = await page.evaluate(() => GPMFExtract(
       new Blob([document.querySelector('[type=file]').files[0]]),
-      { browserMode: true },
+      { browserMode: true, useWorker: false },
     ));
     expect(res.timing.frameDuration).toBe(0.03336666666666667);
   });
@@ -114,7 +117,7 @@ describe.skip('Testing the extracted raw data and timing from Blob', () => {
   test('The output should contain the video duration', async () => {
     const res = await page.evaluate(() => GPMFExtract(
       new Blob([document.querySelector('[type=file]').files[0]]),
-      { browserMode: true },
+      { browserMode: true, useWorker: false },
     ));
     expect(res.timing.videoDuration).toBe(12.078733333333334);
   });

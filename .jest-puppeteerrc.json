@@ -1,7 +1,7 @@
 {
 	"launch": {
 		"headless": true,
-		"devtools": false,
+		"devtools": true,
 		"exitOnPageError": false
 	}
 }

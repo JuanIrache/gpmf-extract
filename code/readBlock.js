@@ -1,9 +1,4 @@
-/**
- *
- * @param {'worker' | 'main' | undefined} mode defaults to worker
- * @returns Either worker fn body or function to read file by blocks in main thread
- */
-function createReader(mode = 'worker') {
+function createReader() {
   function readByBlocks(
     /** @type {File | Blob | Buffer} */
     file,
@@ -56,38 +51,40 @@ function createReader(mode = 'worker') {
     };
   }
 
-  if (mode == 'main' || typeof self === 'undefined') {
-    return readByBlocks;
-  }
+  if (typeof createReader !== 'undefined') {
+    createReader.readByBlocks = readByBlocks;
+    createReader.readByBlocksWorker = createReader;
+  } else {
+    self.onmessage = function (e) {
+      if (e.data[0] === 'readBlock') {
+        const { terminate } = readByBlocks(
+          e.data[1],
+          {
+            chunkSize: 1024 * 1024 * 16,
+            progress(progress) {
+              self.postMessage(['progress', progress]);
+            },
+            onParsedBuffer(buffer, offset) {
+              self.postMessage(['onParsedBuffer', buffer, offset]);
+            },
+            flush() {
+              self.postMessage(['flush']);
+            },
+            onError(err) {
+              self.postMessage(['onError', err]);
+            },
+          },
+        );
 
-  self.onmessage = function (e) {
-    if (e.data[0] === 'readBlock') {
-      const { terminate } = readByBlocks(
-        e.data[1],
-        {
-          chunkSize: 1024 * 1024 * 16,
-          progress(progress) {
-            self.postMessage(['progress', progress]);
-          },
-          onParsedBuffer(buffer, offset) {
-            self.postMessage(['onParsedBuffer', buffer, offset]);
-          },
-          flush() {
-            self.postMessage(['flush']);
-          },
-          onError(err) {
-            self.postMessage(['onError', err]);
-          },
-        },
-      );
-
-      self.onabort = terminate;
+        self.onabort = terminate;
+      };
     };
-
-  };
+  }
 }
 
+// Initialize worker/non-worker
+createReader();
 module.exports = createReader;
 exports = module.exports;
-exports.readByBlocksWorker = createReader;
-exports.readByBlocks = createReader('main');
+exports.readByBlocksWorker = createReader.readByBlocksWorker;
+exports.readByBlocks = createReader.readByBlocks;
