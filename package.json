@@ -6,7 +6,7 @@
   "types": "index.d.ts",
   "scripts": {
     "test": "npm run build && jest",
-    "build": "npx esbuild index.js --outfile=tests/browser/test.js --bundle --platform=node --format=cjs --banner:js=\"'use strict';var module = {};var exports\" --sourcemap"
+    "build": "npx esbuild index.js --outfile=tests/browser/dist.js --bundle --platform=node --format=cjs --banner:js=\"'use strict';var module = {};var exports\" --sourcemap"
   },
   "repository": {
     "type": "git",
