@@ -27,14 +27,12 @@ function GPMFExtract (
   file,
   { browserMode, progress, useWorker = true, cancellationToken } = {}
 ) {
-  var mp4boxFile;
   var trackId;
   var nb_samples;
   /** @type {{ terminate(): void }} */
   var fileReaderByBlocks;
   return new Promise(function (resolve, reject) {
-    // Providing false gives updates to 100% instead of just 50%, but seems to fail in Node
-    mp4boxFile = MP4Box.createFile();
+    var mp4boxFile = MP4Box.createFile();
     var uintArr;
     //Will store timing data to help analyse the extracted data
     var timing = {};
@@ -75,9 +73,7 @@ function GPMFExtract (
 
         //When samples arrive
         mp4boxFile.onSamples = function (id, user, samples) {
-          if (browserMode) {
-            fileReaderByBlocks.terminate('wanted');
-          }
+          // No need to close a closed stream
           var totalSamples = samples.reduce(function (acc, cur) {
             return acc + cur.size;
           }, 0);
@@ -105,24 +101,22 @@ function GPMFExtract (
         };
         mp4boxFile.start();
       } else {
-        fileReaderByBlocks.terminate();
-        reject('Track not found');
+        fileReaderByBlocks.terminate('Track not found');
+        // Terminating the worker causes an error to be thrown
       }
     };
 
     //Use chunk system in browser
     if (browserMode) {
       //Define functions the child process will call
-      var onParsedBuffer = function (unit8array, offset) {
+      function onParsedBuffer (unit8array, offset) {
         const buffer = unit8array.buffer;
         if (buffer.byteLength === 0) {
-          fileReaderByBlocks.terminate();
-          reject('File not compatible');
+          fileReaderByBlocks.terminate('File not compatible');
         }
         buffer.fileStart = offset;
         if (cancellationToken?.cancelled) {
-          fileReaderByBlocks.terminate();
-          reject('Canceled by user');
+          fileReaderByBlocks.terminate('Canceled by user');
         } else {
           mp4boxFile.appendBuffer(buffer);
         }
@@ -145,19 +139,19 @@ function GPMFExtract (
 
         //If the worker crashes, run the old function
         fileReaderByBlocks.onerror = function (e) {
-          fileReaderByBlocks.terminate();
+          if (e == 'Track not found') {
+            //The file has finished reading and did not find any track, no need to retry
+            reject(e);
+            return;
+          }
+
+          mp4boxFile = MP4Box.createFile();
           fileReaderByBlocks = readByBlocks(file, {
             chunkSize: 1024 * 1024 * 2,
             progress,
             onParsedBuffer,
             flush: () => mp4boxFile.flush(),
-            onError(err) {
-              if (err == 'wanted') {
-                return;
-              }
-
-              reject(err);
-            },
+            onError: reject,
           });
         };
         //Start worker
@@ -169,13 +163,7 @@ function GPMFExtract (
           progress,
           onParsedBuffer,
           flush: () => mp4boxFile.flush(),
-          onError(err) {
-            if (err == 'wanted') {
-              return;
-            }
-
-            reject(err);
-          },
+          onError: reject,
         });
       }
     } else {

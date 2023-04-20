@@ -43,6 +43,10 @@ type ISOFile = {
   appendBuffer: (buffer: Buffer) => void;
   flush: () => void;
 };
+/**
+ * Finds the metadata track in GoPro (Hero5 and later) video files (or any other camera that implements GPMF) and extracts it for later analysis and processing.
+ * @throws {'Track not found' | 'File not compatible' | 'Canceled by user'}
+ */
 declare function GPMFExtract(
   file: Blob | File,
   options?: GPMFExtractBrowserOptions,
