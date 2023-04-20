@@ -1,7 +1,6 @@
-var MP4Box = require('mp4box');
-var readBlockFactory = require('./code/readBlock');
-var readBlockWorker = require('./code/readBlockWorker');
-var InlineWorker = require('inline-worker');
+const MP4Box = require('mp4box');
+const { readByBlocksWorker, readByBlocks } = require('./code/readBlock');
+const InlineWorker = require('./code/inline-worker');
 
 //Will convert the final uint8Array to buffer
 //https://stackoverflow.com/a/12101012/3362074
@@ -28,15 +27,16 @@ function GPMFExtract (
   file,
   { browserMode, progress, useWorker = true, cancellationToken } = {}
 ) {
-  var mp4boxFile;
+  if (!file) {
+    throw new TypeError('File not provided');
+  }
+
   var trackId;
   var nb_samples;
-  var worker;
-  var workerRunning = true;
+  /** @type {{ terminate(): void }} */
+  var fileReaderByBlocks;
   return new Promise(function (resolve, reject) {
-    var readBlock = readBlockFactory();
-    // Providing false gives updates to 100% instead of just 50%, but seems to fail in Node
-    mp4boxFile = MP4Box.createFile(browserMode ? false : undefined);
+    var mp4boxFile = MP4Box.createFile();
     var uintArr;
     //Will store timing data to help analyse the extracted data
     var timing = {};
@@ -77,10 +77,7 @@ function GPMFExtract (
 
         //When samples arrive
         mp4boxFile.onSamples = function (id, user, samples) {
-          if (browserMode) {
-            if (workerRunning) worker.terminate();
-            else readBlock.stop();
-          }
+          // No need to close a closed stream
           var totalSamples = samples.reduce(function (acc, cur) {
             return acc + cur.size;
           }, 0);
@@ -100,77 +97,84 @@ function GPMFExtract (
             runningCount += sample.size;
           });
 
-          //Convert to Buffer
-          var rawData = toBuffer(uintArr);
+          //Convert to Buffer if in Node
+          var rawData = browserMode ? uintArr : toBuffer(uintArr);
 
           //And return it
           resolve({ rawData, timing });
         };
         mp4boxFile.start();
       } else {
-        if (worker) worker.terminate();
-        else readBlock.stop();
-        reject('Track not found');
+        fileReaderByBlocks.terminate('Track not found');
+        // Terminating the worker causes an error to be thrown
       }
     };
 
     //Use chunk system in browser
     if (browserMode) {
       //Define functions the child process will call
-      var onparsedbuffer = function (buffer, offset) {
+      function onParsedBuffer (unit8array, offset) {
+        const buffer = unit8array.buffer;
         if (buffer.byteLength === 0) {
-          if (worker) worker.terminate();
-          else readBlock.stop();
-          reject('File not compatible');
+          fileReaderByBlocks.terminate('File not compatible');
         }
         buffer.fileStart = offset;
-        if (cancellationToken && cancellationToken.cancelled) {
-          if (worker) worker.terminate();
-          else readBlock.stop();
-          reject('Canceled by user');
-        } else mp4boxFile.appendBuffer(buffer);
+        if (cancellationToken?.cancelled) {
+          fileReaderByBlocks.terminate('Canceled by user');
+        } else {
+          mp4boxFile.appendBuffer(buffer);
+        }
       };
       // var flush = mp4boxFile.flush;
       //Try to use a web worker to avoid blocking the browser
       if (useWorker && typeof window !== 'undefined' && window.Worker) {
-        worker = new InlineWorker(readBlockWorker, {});
-        worker.onmessage = function (e) {
-          //Run functions when the web worker requestst them
-          if (e.data[0] === 'update' && progress) progress(e.data[1]);
-          else if (e.data[0] === 'onparsedbuffer') {
-            onparsedbuffer(e.data[1], e.data[2]);
-          } else if (e.data[0] === 'flush') mp4boxFile.flush();
-          else if (e.data[0] === 'onError') reject(e.data[1]);
+        fileReaderByBlocks = new InlineWorker(readByBlocksWorker, {});
+        fileReaderByBlocks.onmessage = function (e) {
+          //Run functions when the web worker requests them
+          if (e.data[0] === 'progress' && progress) progress(e.data[1]);
+          else if (e.data[0] === 'onParsedBuffer') {
+            onParsedBuffer(e.data[1], e.data[2]);
+          } else if (e.data[0] === 'flush') {
+            mp4boxFile.flush();
+          } else if (e.data[0] === 'onError') {
+            reject(e.data[1]);
+          }
         };
 
-        //If the worker crashes, run the old function //TODO, unduplicate code
-        worker.onerror = function (e) {
-          workerRunning = false;
-          if (worker) worker.terminate();
-          readBlock.read(file, {
-            update: progress,
-            onparsedbuffer,
-            mp4boxFile,
-            onError: reject
+        //If the worker crashes, run the old function
+        fileReaderByBlocks.onerror = function (e) {
+          if (e == 'Track not found') {
+            //The file has finished reading and did not find any track, no need to retry
+            reject(e);
+            return;
+          }
+
+          mp4boxFile = MP4Box.createFile();
+          fileReaderByBlocks = readByBlocks(file, {
+            chunkSize: 1024 * 1024 * 2,
+            progress,
+            onParsedBuffer,
+            flush: () => mp4boxFile.flush(),
+            onError: reject,
           });
         };
         //Start worker
-        worker.postMessage(['readBlock', file]);
+        fileReaderByBlocks.postMessage(['readBlock', file]);
         //If workers not supported, use old strategy
       } else {
-        workerRunning = false;
-        readBlock.read(file, {
-          update: progress,
-          onparsedbuffer,
-          mp4boxFile,
-          onError: reject
+        fileReaderByBlocks = readByBlocks(file, {
+          chunkSize: 1024 * 1024 * 2,
+          progress,
+          onParsedBuffer,
+          flush: () => mp4boxFile.flush(),
+          onError: reject,
         });
       }
     } else {
       //Nodejs
       if (typeof file === 'function') {
         file(mp4boxFile);
-      } else if (file instanceof Buffer) {
+      } else if (typeof Buffer == 'function' && file instanceof Buffer) {
         var arrayBuffer = toArrayBuffer(file);
         if (arrayBuffer.byteLength === 0) reject('File not compatible');
 

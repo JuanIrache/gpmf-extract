@@ -1,1 +1,3 @@
 node_modules/
+tests/browser/dist.js
+tests/browser/dist.js.map

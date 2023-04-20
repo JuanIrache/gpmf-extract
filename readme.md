@@ -2,7 +2,7 @@
 
 Finds the metadata track in GoPro (Hero5 and later) video files (or any other camera that implements GPMF) and extracts it for later analysis and processing.
 
-Accepts a File and returns a Promise that resolves to an object with a Buffer (rawData) and timing data (timing), useful for interpreting the data.
+Accepts a File and returns a Promise that resolves to an object with a rawData (`Buffer` in NodeJS, `UInt8Array` in Browser) and timing data (timing), useful for interpreting the data.
 
 Once extracted, you can process the data with [gopro-telemetry](https://github.com/JuanIrache/gopro-telemetry).
 
@@ -63,7 +63,6 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 ## To-DO
 
 - Fix #46 Memory allocation with large files on certain browsers when using the web worker option
-- Unduplicate code from readBlock and readBlockWorker
 - Increase browser compatibility
 - Extract highlights
 
