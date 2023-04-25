@@ -14,21 +14,26 @@ function createReader() {
     const abortController = new AbortController();
     /** @type {(reason?: any) => void} */
     const terminate = reason => abortController.abort(reason);
-    if (file.stream || Blob) {
+    if (file.stream || typeof Blob !== 'undefined') {
       // Browser
       const stream = file.stream ? file.stream() : new Blob([file]).stream();
       pipeTo = write => stream.pipeTo(
         new WritableStream({ write }, { size: () => chunkSize }),
         { signal: abortController.signal },
       );
-    } else if (Buffer) {
+    } else {
       // NodeJS
-      pipeTo = write => require('stream').Readable.from(file, { read: () => chunkSize }).pipeTo(
-        new require('stream').Writable({
-          write,
-          signal: abortController.signal,
-        }),
-      );
+      try {
+        const { Writable, Readable } = require('stream');
+        pipeTo = write => Readable.from(file, { read: () => chunkSize }).pipeTo(
+          new Writable({
+            write,
+            signal: abortController.signal,
+          }),
+        );
+      } catch {
+        throw new Error('Cannot use NodeJS stream');
+      }
     }
 
     return {
