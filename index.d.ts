@@ -58,17 +58,3 @@ declare function GPMFExtract(
 
 export default GPMFExtract;
 export { GPMFExtract };
-
-GPMFExtract(
-  file as File,
-  {
-    browserMode: true,
-    cancellationToken: { cancelled: false },
-  }
-)
-GPMFExtract(
-  file as Buffer,
-  {
-    browserMode: false,
-  }
-)
