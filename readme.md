@@ -75,3 +75,4 @@ Please make your changes to the **dev** branch, so that automated tests can be r
 - [HugoPoi](https://github.com/HugoPoi) - Contributor
 - [gunta987](https://github.com/gunta987) - Contributor
 - [Akxe](https://github.com/Akxe) - Contributor
+- [TJ Horner](https://github.com/tjhorner) - Contributor
