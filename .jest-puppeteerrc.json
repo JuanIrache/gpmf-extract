@@ -1,6 +1,6 @@
 {
 	"launch": {
-		"headless": true,
+		"headless": "new",
 		"devtools": false,
 		"exitOnPageError": false
 	}

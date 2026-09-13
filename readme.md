@@ -26,8 +26,8 @@ gpmfExtract(file).then(res => {
 You can specify some options in an object as a second argument:
 
 - **browserMode**: Default: _false_. Change behaviour to use in browser. This is optional for debugging reasons
-- **useWorker**: Default: _true_. In browser mode, use a web worker to avoid locking the browser. This is optional as it seems to crash on some recent browsers
-- **progress**: Pass a function to read the processed percentage updates
+- **useWorker**: Default: _false_. Opt into a web worker. A failed worker attempt retries once on the main thread with a fresh parser. Cancellation does not retry.
+- **progress**: Pass a function to read the processed percentage updates. Updates stop when extraction settles; successful extraction may finish before 100% of the file is read. During a worker fallback, progress restarts for the new read.
 - **cancellationToken**: An optional object, containing a cancelled property, that allows for cancelling the extraction process. Currently only supported in browser mode. If cancelled, the extraction process will fail with the error message "Canceled by user".
 
 ```js
@@ -36,13 +36,35 @@ const progress = percent => console.log(`${percent}% processed`);
 const cancellationToken = { cancelled: false };
 gpmfExtract(file, { browserMode: true, progress, cancellationToken }).then(
   res => {
-    if (!res) return; //cancelled
     // Do what you want with the data
-  }
+  },
+  error => console.error(error.code, error.message)
 );
 // Some other processes
 cancellationToken.cancelled = true;
 ```
+
+## Errors and migration from 0.3.x
+
+Extraction rejects with `GPMFExtractError`, an `Error` subclass exported by the package. Match `error.code` instead of comparing the rejection directly to a string. Existing messages for missing tracks, incompatible files, and cancellation are preserved, but string equality is no longer compatible. The worker is now opt-in. These changes are intended for the next minor release (0.4.0).
+
+| Code | Meaning |
+| --- | --- |
+| `INVALID_MP4` | Empty, malformed, or incomplete container that could not be recognised |
+| `TRACK_NOT_FOUND` | Recognised container without a gpmd track |
+| `EMPTY_TELEMETRY` | gpmd track declares no samples |
+| `INCOMPLETE_TELEMETRY` | EOF arrived before all declared telemetry samples |
+| `CANCELLED` | Cancellation token was set |
+| `READ_ERROR` | Input could not be read |
+| `PARSE_ERROR` | Parsing failed after container recognition |
+
+Low-level failures are retained in `error.cause`. If both a worker and its main-thread retry fail, `error.workerError` contains the initial worker failure. A missing file argument continues to throw a synchronous `TypeError`.
+
+Successful extraction stops the reader immediately. A file with telemetry but no GPS fix still succeeds. Finite inputs settle at EOF without a timer. Custom Node producer functions must call the supplied parser's `flush()` at EOF; the library cannot infer when an external producer has finished. Such producers own their streams and remain responsible for closing them. Cancellation tokens are checked at startup and between chunks/callbacks, not while an external read is stalled.
+
+## Tests
+
+Run `npm ci` and `npm test -- --runInBand`. Tests include actual browser workers, forced worker failures, EOF/error handling, and sample output checks. Set `PUPPETEER_EXECUTABLE_PATH` to test an installed Chromium. The optional large-file test requires `gpmf-extract-large-file`.
 
 ## About
 
