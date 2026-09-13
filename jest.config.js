@@ -4,13 +4,13 @@ const config = {
     {
       displayName: ' Node  ',
       runner: 'jest-runner',
-      testMatch: ['**/node.test.js'],
+      testMatch: ['**/node.test.js', '**/*.node.test.js'],
     },
     {
       displayName: 'Browser',
       runner: 'jest-runner',
       preset: "jest-puppeteer",
-      testMatch: ['**/browser.test.js'],
+      testMatch: ['**/browser.test.js', '**/*.browser.test.js'],
     },
   ],
   maxConcurrency: 1,

@@ -1,194 +1,177 @@
 const MP4Box = require('mp4box');
 const { readByBlocksWorker, readByBlocks } = require('./code/readBlock');
 const InlineWorker = require('./code/inline-worker');
+const { GPMFExtractError, asError } = require('./code/errors');
 
-//Will convert the final uint8Array to buffer
-//https://stackoverflow.com/a/12101012/3362074
-function toBuffer(ab) {
-  var buf = Buffer.alloc(ab.byteLength);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buf.length; ++i) {
-    buf[i] = view[i];
-  }
-  return buf;
-}
+function GPMFExtract(file, { browserMode, progress, useWorker = false, cancellationToken } = {}) {
+  if (!file) throw new TypeError('File not provided');
 
-//And back
-function toArrayBuffer(buf) {
-  var ab = new ArrayBuffer(buf.length);
-  var view = new Uint8Array(ab);
-  for (var i = 0; i < buf.length; ++i) {
-    view[i] = buf[i];
-  }
-  return ab;
-}
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let current;
 
-function GPMFExtract (
-  file,
-  { browserMode, progress, useWorker = true, cancellationToken } = {}
-) {
-  if (!file) {
-    throw new TypeError('File not provided');
-  }
-
-  var trackId;
-  var nb_samples;
-  /** @type {{ terminate(): void }} */
-  var fileReaderByBlocks;
-  return new Promise(function (resolve, reject) {
-    var mp4boxFile = MP4Box.createFile();
-    var uintArr;
-    //Will store timing data to help analyse the extracted data
-    var timing = {};
-    mp4boxFile.onError = reject;
-
-    //When the data is ready, look for the right track
-    mp4boxFile.onReady = function (videoData) {
-      var foundVideo = false;
-      for (var i = 0; i < videoData.tracks.length; i++) {
-        //Find the metadata track. Collect Id and number of samples
-        if (videoData.tracks[i].codec == 'gpmd') {
-          trackId = videoData.tracks[i].id;
-          nb_samples = videoData.tracks[i].nb_samples;
-          timing.start = videoData.tracks[i].created;
-          // Try to correct GoPro's badly encoded time zone
-          timing.start.setMinutes(
-            timing.start.getMinutes() + timing.start.getTimezoneOffset()
-          );
-        } else if (
-          !foundVideo &&
-          (videoData.tracks[i].type === 'video' ||
-            videoData.tracks[i].name === 'VideoHandler' ||
-            videoData.tracks[i].track_height > 0)
-        ) {
-          // Only confirm video track if found by type, in case more than one meet the other conditions
-          if (videoData.tracks[i].type === 'video') foundVideo = true;
-          var vid = videoData.tracks[i];
-          timing.videoDuration = vid.movie_duration / vid.movie_timescale;
-          //Deduce framerate from video track
-          timing.frameDuration = timing.videoDuration / vid.nb_samples;
-        }
-      }
-      if (trackId != null) {
-        //Request the track
-        mp4boxFile.setExtractionOptions(trackId, null, {
-          nbSamples: nb_samples
-        });
-
-        //When samples arrive
-        mp4boxFile.onSamples = function (id, user, samples) {
-          // No need to close a closed stream
-          var totalSamples = samples.reduce(function (acc, cur) {
-            return acc + cur.size;
-          }, 0);
-
-          //Save the time and duration of each sample
-          timing.samples = [];
-
-          //Store them in Uint8Array
-          uintArr = new Uint8Array(totalSamples);
-          var runningCount = 0;
-          samples.forEach(function (sample) {
-            timing.samples.push({ cts: sample.cts, duration: sample.duration });
-            // The loop prevents Firefox from crashing
-            for (var i = 0; i < sample.size; i++) {
-              uintArr.set(sample.data, runningCount);
-            }
-            runningCount += sample.size;
-          });
-
-          //Convert to Buffer if in Node
-          var rawData = browserMode ? uintArr : toBuffer(uintArr);
-
-          //And return it
-          resolve({ rawData, timing });
-        };
-        mp4boxFile.start();
-      } else {
-        fileReaderByBlocks.terminate('Track not found');
-        // Terminating the worker causes an error to be thrown
-      }
-    };
-
-    //Use chunk system in browser
-    if (browserMode) {
-      //Define functions the child process will call
-      function onParsedBuffer (unit8array, offset) {
-        const buffer = unit8array.buffer;
-        if (buffer.byteLength === 0) {
-          fileReaderByBlocks.terminate('File not compatible');
-        }
-        buffer.fileStart = offset;
-        if (cancellationToken?.cancelled) {
-          fileReaderByBlocks.terminate('Canceled by user');
-        } else {
-          mp4boxFile.appendBuffer(buffer);
-        }
-      };
-      // var flush = mp4boxFile.flush;
-      //Try to use a web worker to avoid blocking the browser
-      if (useWorker && typeof window !== 'undefined' && window.Worker) {
-        fileReaderByBlocks = new InlineWorker(readByBlocksWorker, {});
-        fileReaderByBlocks.onmessage = function (e) {
-          //Run functions when the web worker requests them
-          if (e.data[0] === 'progress' && progress) progress(e.data[1]);
-          else if (e.data[0] === 'onParsedBuffer') {
-            onParsedBuffer(e.data[1], e.data[2]);
-          } else if (e.data[0] === 'flush') {
-            mp4boxFile.flush();
-          } else if (e.data[0] === 'onError') {
-            reject(e.data[1]);
-          }
-        };
-
-        //If the worker crashes, run the old function
-        fileReaderByBlocks.onerror = function (e) {
-          if (e == 'Track not found') {
-            //The file has finished reading and did not find any track, no need to retry
-            reject(e);
-            return;
-          }
-
-          mp4boxFile = MP4Box.createFile();
-          fileReaderByBlocks = readByBlocks(file, {
-            chunkSize: 1024 * 1024 * 2,
-            progress,
-            onParsedBuffer,
-            flush: () => mp4boxFile.flush(),
-            onError: reject,
-          });
-        };
-        //Start worker
-        fileReaderByBlocks.postMessage(['readBlock', file]);
-        //If workers not supported, use old strategy
-      } else {
-        fileReaderByBlocks = readByBlocks(file, {
-          chunkSize: 1024 * 1024 * 2,
-          progress,
-          onParsedBuffer,
-          flush: () => mp4boxFile.flush(),
-          onError: reject,
-        });
-      }
-    } else {
-      //Nodejs
-      if (typeof file === 'function') {
-        file(mp4boxFile);
-      } else if (typeof Buffer == 'function' && file instanceof Buffer) {
-        var arrayBuffer = toArrayBuffer(file);
-        if (arrayBuffer.byteLength === 0) reject('File not compatible');
-
-        arrayBuffer.fileStart = 0;
-
-        //Assign data to mp4box
-        mp4boxFile.appendBuffer(arrayBuffer);
-      } else {
-        reject('File not compatible');
-      }
+    function stop(attempt) {
+      if (!attempt) return;
+      attempt.active = false;
+      attempt.parser.stop();
+      if (attempt.reader) attempt.reader.terminate();
     }
+
+    function finish(error, result) {
+      if (settled) return;
+      settled = true;
+      stop(current);
+      if (error) reject(error);
+      else resolve(result);
+    }
+
+    function start(workerMode, workerError) {
+      const parser = MP4Box.createFile();
+      const attempt = { parser, active: true, reader: null };
+      current = attempt;
+      const timing = { samples: [] };
+      let ready = false;
+      let track;
+      let received = 0;
+      let byteLength = 0;
+      const parts = [];
+      const active = () => !settled && attempt.active && current === attempt;
+
+      function fail(error) {
+        if (!active()) return;
+        if (cancellationToken?.cancelled) error = new GPMFExtractError('CANCELLED');
+        if (workerMode && error.code !== 'CANCELLED') {
+          stop(attempt);
+          start(false, error);
+        } else {
+          if (workerError) error.workerError = workerError;
+          finish(error);
+        }
+      }
+
+      function cancelled() {
+        if (!active()) return true;
+        if (!cancellationToken?.cancelled) return false;
+        fail(new GPMFExtractError('CANCELLED'));
+        return true;
+      }
+
+      // Catch parser exceptions even when a producer appends asynchronously.
+      function parse(action) {
+        if (cancelled()) return;
+        try { return action(); }
+        catch (error) { fail(asError(error, ready ? 'PARSE_ERROR' : 'INVALID_MP4')); }
+      }
+
+      parser.onError = error => fail(asError(error, ready ? 'PARSE_ERROR' : 'INVALID_MP4'));
+      parser.onReady = videoData => {
+        if (cancelled()) return;
+        ready = true;
+        track = videoData.tracks.find(candidate => candidate.codec === 'gpmd');
+        if (!track) return fail(new GPMFExtractError('TRACK_NOT_FOUND'));
+        if (!track.nb_samples) return fail(new GPMFExtractError('EMPTY_TELEMETRY'));
+
+        timing.start = new Date(track.created);
+        timing.start.setMinutes(timing.start.getMinutes() + timing.start.getTimezoneOffset());
+        let foundVideo = false;
+        for (const video of videoData.tracks) {
+          if (video !== track && !foundVideo &&
+              (video.type === 'video' || video.name === '\fVideoHandler' || video.track_height > 0)) {
+            foundVideo = video.type === 'video';
+            timing.videoDuration = video.movie_duration / video.movie_timescale;
+            timing.frameDuration = timing.videoDuration / video.nb_samples;
+          }
+        }
+        parser.setExtractionOptions(track.id, null, { nbSamples: track.nb_samples });
+        parser.start();
+      };
+
+      parser.onSamples = (id, user, samples) => {
+        if (cancelled() || !track || id !== track.id) return;
+        for (const sample of samples) {
+          parts.push(sample.data);
+          byteLength += sample.size;
+          timing.samples.push({ cts: sample.cts, duration: sample.duration });
+          received++;
+        }
+        if (received !== track.nb_samples) return;
+        const data = new Uint8Array(byteLength);
+        let offset = 0;
+        for (const part of parts) {
+          data.set(part, offset);
+          offset += part.byteLength;
+        }
+        finish(null, { rawData: browserMode ? data : Buffer.from(data), timing });
+      };
+
+      const append = parser.appendBuffer.bind(parser);
+      parser.appendBuffer = buffer => parse(() => append(buffer));
+      const flush = parser.flush.bind(parser);
+      parser.flush = () => parse(() => {
+        flush();
+        if (!active()) return;
+        fail(new GPMFExtractError(!ready ? 'INVALID_MP4' : 'INCOMPLETE_TELEMETRY'));
+      });
+
+      function onParsedBuffer(bytes, offset) {
+        if (cancelled()) return;
+        // Streams may yield a view into a larger backing buffer.
+        const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        buffer.fileStart = offset;
+        parser.appendBuffer(buffer);
+      }
+
+      function onProgress(value) {
+        if (cancelled() || !progress) return;
+        try { progress(value); }
+        catch (error) { fail(asError(error, 'READ_ERROR')); }
+      }
+
+      if (cancelled()) return;
+      try {
+        if (!browserMode) {
+          if (typeof file === 'function') {
+            // Legacy producers signal EOF by calling the wrapped flush().
+            file(parser);
+          } else if (typeof Buffer === 'function' && Buffer.isBuffer(file)) {
+            onParsedBuffer(file, 0);
+            parser.flush();
+          } else fail(new GPMFExtractError('INVALID_MP4'));
+        } else if (workerMode) {
+          const worker = new InlineWorker(readByBlocksWorker);
+          attempt.reader = worker;
+          worker.onmessage = event => {
+            if (!active()) return;
+            const [type, value, offset] = event.data;
+            if (type === 'onParsedBuffer') {
+              onParsedBuffer(value, offset);
+              if (active()) worker.postMessage(['ack']);
+            } else if (type === 'progress') onProgress(value);
+            else if (type === 'flush') parser.flush();
+            else if (type === 'onError') fail(asError(value, 'READ_ERROR'));
+          };
+          worker.onerror = event => {
+            if (event.preventDefault) event.preventDefault();
+            fail(asError(event.error || event.message, 'READ_ERROR'));
+          };
+          worker.onmessageerror = event => fail(asError(event.data, 'READ_ERROR'));
+          worker.postMessage(['readBlock', file]);
+        } else {
+          attempt.reader = readByBlocks(file, {
+            chunkSize: 2 * 1024 * 1024,
+            progress: onProgress,
+            onParsedBuffer,
+            flush: () => parser.flush(),
+            onError: error => fail(asError(error, 'READ_ERROR')),
+          });
+        }
+      } catch (error) { fail(asError(error, 'READ_ERROR')); }
+    }
+
+    start(Boolean(browserMode && useWorker && typeof window !== 'undefined' && window.Worker));
   });
-};
+}
 
 module.exports = GPMFExtract;
-exports = module.exports;
-exports.GPMFExtract = GPMFExtract;
+module.exports.GPMFExtract = GPMFExtract;
+module.exports.GPMFExtractError = GPMFExtractError;
