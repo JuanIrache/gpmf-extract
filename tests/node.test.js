@@ -90,3 +90,12 @@ describe('Testing the extracted raw data and timing from Path', () => {
     }, 30000);
   });
 }
+
+describe('Testing a recording that was interrupted before its moov was written', () => {
+  test('It should reject instead of never settling', async () => {
+    const file = fs.readFileSync(path);
+    // karma.mp4 has its moov after the media data: cutting the file removes it, like a camera losing power
+    const interrupted = file.subarray(0, Math.floor(file.length * 0.6));
+    await expect(gpmfExtract(Buffer.from(interrupted))).rejects.toMatch('No moov box found');
+  });
+});
