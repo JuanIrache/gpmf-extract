@@ -41,9 +41,21 @@ function GPMFExtract (
     //Will store timing data to help analyse the extracted data
     var timing = {};
     mp4boxFile.onError = reject;
+    // mp4box.js only reports a file once it has read its moov: a file that ends without one (an interrupted
+    // recording) would otherwise leave this promise pending forever
+    var ready = false;
+    function flushOrReject () {
+      mp4boxFile.flush();
+      if (!ready) {
+        reject(
+          'No moov box found: the recording was probably interrupted before its index was written (camera lost power or the card was pulled). Its video data may still be in the file.'
+        );
+      }
+    }
 
     //When the data is ready, look for the right track
     mp4boxFile.onReady = function (videoData) {
+      ready = true;
       var foundVideo = false;
       for (var i = 0; i < videoData.tracks.length; i++) {
         //Find the metadata track. Collect Id and number of samples
@@ -135,7 +147,7 @@ function GPMFExtract (
           else if (e.data[0] === 'onParsedBuffer') {
             onParsedBuffer(e.data[1], e.data[2]);
           } else if (e.data[0] === 'flush') {
-            mp4boxFile.flush();
+            flushOrReject();
           } else if (e.data[0] === 'onError') {
             reject(e.data[1]);
           }
@@ -154,7 +166,7 @@ function GPMFExtract (
             chunkSize: 1024 * 1024 * 2,
             progress,
             onParsedBuffer,
-            flush: () => mp4boxFile.flush(),
+            flush: flushOrReject,
             onError: reject,
           });
         };
@@ -166,7 +178,7 @@ function GPMFExtract (
           chunkSize: 1024 * 1024 * 2,
           progress,
           onParsedBuffer,
-          flush: () => mp4boxFile.flush(),
+          flush: flushOrReject,
           onError: reject,
         });
       }
@@ -182,6 +194,7 @@ function GPMFExtract (
 
         //Assign data to mp4box
         mp4boxFile.appendBuffer(arrayBuffer);
+        flushOrReject();
       } else {
         reject('File not compatible');
       }
